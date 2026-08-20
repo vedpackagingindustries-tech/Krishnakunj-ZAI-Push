@@ -187,15 +187,15 @@ export default function HomePage() {
             {/* Mata Photos + Temple Name */}
             <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-10">
               {/* Left: Karma Mata Photo */}
-              <div className="flex-shrink-0 w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-2 border-light-gold"
+              <div className="flex-shrink-0 w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
                 style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
               >
                 <Image
                   src="/images/karma-mata.png"
                   alt="संत माता कर्मा"
                   width={200}
-                  height={200}
-                  className="w-full h-full object-cover"
+                  height={250}
+                  className="w-full h-full object-cover object-top"
                   priority
                 />
               </div>
@@ -209,15 +209,15 @@ export default function HomePage() {
               </h1>
 
               {/* Right: Mata Photo */}
-              <div className="flex-shrink-0 w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-2 border-light-gold"
+              <div className="flex-shrink-0 w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
                 style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
               >
                 <Image
                   src="/images/mata-photo.png"
                   alt="माता राजिम"
                   width={200}
-                  height={200}
-                  className="w-full h-full object-cover"
+                  height={250}
+                  className="w-full h-full object-cover object-top"
                   priority
                 />
               </div>
