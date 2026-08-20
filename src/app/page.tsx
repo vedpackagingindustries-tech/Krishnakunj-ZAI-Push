@@ -165,41 +165,46 @@ function SectionHeading({ children, className = "" }: { children: React.ReactNod
 /* ═══════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════ */
-/* ─── Temple bell sound on page load ─── */
-function playTempleBell() {
+/* ─── Temple bell sound — loops continuously on homepage ─── */
+let bellAudio: HTMLAudioElement | null = null;
+
+function startTempleBell() {
   if (typeof window === "undefined") return;
+  if (bellAudio) return; // already playing
   try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-
-    // Bell frequencies (Hz) — harmonics of a real temple bell
-    const partials = [
-      { freq: 280, gain: 0.35, decay: 3.5 },
-      { freq: 560, gain: 0.2, decay: 2.8 },
-      { freq: 840, gain: 0.12, decay: 2.0 },
-      { freq: 1120, gain: 0.07, decay: 1.5 },
-      { freq: 1400, gain: 0.04, decay: 1.0 },
-      { freq: 320, gain: 0.15, decay: 3.0 },
-    ];
-
-    const now = ctx.currentTime;
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.6, now);
-    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 4);
-    masterGain.connect(ctx.destination);
-
-    partials.forEach(({ freq, gain, decay }) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, now);
-      // Slight pitch bend down for realism
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.97, now + decay);
-      g.gain.setValueAtTime(gain, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + decay);
-      osc.connect(g);
-      g.connect(masterGain);
-      osc.start(now);
-      osc.stop(now + decay + 0.5);
+    bellAudio = new Audio("/audio/temple-bell.mp3");
+    bellAudio.loop = true;
+    bellAudio.volume = 0;
+    bellAudio.play().then(() => {
+      // Smooth fade-in over 2 seconds
+      const fadeInterval = setInterval(() => {
+        if (!bellAudio) { clearInterval(fadeInterval); return; }
+        if (bellAudio.volume < 0.6) {
+          bellAudio.volume = Math.min(bellAudio.volume + 0.03, 0.6);
+        } else {
+          clearInterval(fadeInterval);
+        }
+      }, 100);
+    }).catch(() => {
+      // Browser blocked autoplay — wait for first user interaction
+      const resumeOnInteraction = () => {
+        if (bellAudio && bellAudio.paused) {
+          bellAudio.play().then(() => {
+            const fadeInterval = setInterval(() => {
+              if (!bellAudio) { clearInterval(fadeInterval); return; }
+              if (bellAudio.volume < 0.6) {
+                bellAudio.volume = Math.min(bellAudio.volume + 0.03, 0.6);
+              } else {
+                clearInterval(fadeInterval);
+              }
+            }, 100);
+          }).catch(() => {});
+        }
+        document.removeEventListener("click", resumeOnInteraction);
+        document.removeEventListener("touchstart", resumeOnInteraction);
+      };
+      document.addEventListener("click", resumeOnInteraction, { once: true });
+      document.addEventListener("touchstart", resumeOnInteraction, { once: true });
     });
   } catch {
     // Audio not supported — silent fallback
@@ -272,7 +277,7 @@ export default function HomePage() {
             <div
               className="relative rounded-2xl overflow-hidden"
               style={{ boxShadow: "0 8px 30px rgba(214,174,92,0.15)" }}
-              ref={(el) => { if (el) playTempleBell(); }}
+              ref={(el) => { if (el) startTempleBell(); }}
             >
               <Image
                 src="/images/temple-photo.jpeg"
