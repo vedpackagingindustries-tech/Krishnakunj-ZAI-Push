@@ -202,7 +202,7 @@ export default function HomePage() {
 
               {/* Center: Temple Name */}
               <h1
-                className="temple-title-animated text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-center flex-1"
+                className="temple-title-animated text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-tight text-center flex-1"
               >
                 {TEMPLE_NAME}
               </h1>
@@ -242,38 +242,28 @@ export default function HomePage() {
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1024px"
               />
 
-              {/* ── Animated Flag on top of temple ── */}
-              <div className="absolute top-[2%] left-1/2 -translate-x-1/2 temple-flag">
-                <svg width="36" height="48" viewBox="0 0 36 48" fill="none" className="drop-shadow-md sm:w-10 sm:h-14">
-                  {/* Pole */}
-                  <rect x="16" y="0" width="3" height="48" fill="#D6AE5C" rx="1" />
-                  {/* Flag cloth */}
-                  <path d="M19 4C19 4 19 4 34 8C34 8 30 16 19 18" fill="#E88A24" opacity="0.9">
-                    <animate attributeName="d" dur="2s" repeatCount="indefinite"
-                      values="M19 4C19 4 19 4 34 8C34 8 30 16 19 18;
-                              M19 5C19 5 20 3 33 7C33 7 31 15 19 17;
-                              M19 4C19 4 19 4 34 8C34 8 30 16 19 18" />
-                  </path>
-                  {/* Om symbol on flag */}
-                  <text x="25" y="13" fontSize="7" fill="#FFF9ED" textAnchor="middle" fontWeight="bold">ॐ</text>
-                </svg>
-              </div>
-
               {/* ── Divine rays from centre (Krishna/Mata area) ── */}
               <div className="divine-rays-container">
+                <div className="divine-ray" />
+                <div className="divine-ray" />
                 <div className="divine-ray" />
                 <div className="divine-ray" />
                 <div className="divine-ray" />
                 <div className="divine-glow-center" />
               </div>
 
-              {/* ── Sparkle particles ── */}
-              <>
+              {/* u2500u2500 Sparkle particles u2500u2500 */}
+              <div className="sparkle-container">
                 <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
-              </>
+                <div className="sparkle" /><div className="sparkle" />
+                <div className="sparkle" /><div className="sparkle" />
+                <div className="sparkle" /><div className="sparkle" />
+                <div className="sparkle" /><div className="sparkle" />
+                <div className="sparkle" /><div className="sparkle" />
+              </div>
             </div>
           </div>
 
