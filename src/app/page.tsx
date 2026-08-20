@@ -165,6 +165,47 @@ function SectionHeading({ children, className = "" }: { children: React.ReactNod
 /* ═══════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════ */
+/* ─── Temple bell sound on page load ─── */
+function playTempleBell() {
+  if (typeof window === "undefined") return;
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+
+    // Bell frequencies (Hz) — harmonics of a real temple bell
+    const partials = [
+      { freq: 280, gain: 0.35, decay: 3.5 },
+      { freq: 560, gain: 0.2, decay: 2.8 },
+      { freq: 840, gain: 0.12, decay: 2.0 },
+      { freq: 1120, gain: 0.07, decay: 1.5 },
+      { freq: 1400, gain: 0.04, decay: 1.0 },
+      { freq: 320, gain: 0.15, decay: 3.0 },
+    ];
+
+    const now = ctx.currentTime;
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.6, now);
+    masterGain.gain.exponentialRampToValueAtTime(0.001, now + 4);
+    masterGain.connect(ctx.destination);
+
+    partials.forEach(({ freq, gain, decay }) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, now);
+      // Slight pitch bend down for realism
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.97, now + decay);
+      g.gain.setValueAtTime(gain, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + decay);
+      osc.connect(g);
+      g.connect(masterGain);
+      osc.start(now);
+      osc.stop(now + decay + 0.5);
+    });
+  } catch {
+    // Audio not supported — silent fallback
+  }
+}
+
 export default function HomePage() {
 
   return (
@@ -202,7 +243,7 @@ export default function HomePage() {
 
               {/* Center: Temple Name */}
               <h1
-                className="temple-title-animated text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight leading-tight text-center flex-1"
+                className="temple-title-animated text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none text-center flex-1 whitespace-nowrap overflow-visible"
               >
                 {TEMPLE_NAME}
               </h1>
@@ -231,6 +272,7 @@ export default function HomePage() {
             <div
               className="relative rounded-2xl overflow-hidden"
               style={{ boxShadow: "0 8px 30px rgba(214,174,92,0.15)" }}
+              ref={(el) => { if (el) playTempleBell(); }}
             >
               <Image
                 src="/images/temple-photo.jpeg"
@@ -252,7 +294,7 @@ export default function HomePage() {
                 <div className="divine-glow-center" />
               </div>
 
-              {/* u2500u2500 Sparkle particles u2500u2500 */}
+              {/* ── Sparkle particles (upper area only) ── */}
               <div className="sparkle-container">
                 <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
