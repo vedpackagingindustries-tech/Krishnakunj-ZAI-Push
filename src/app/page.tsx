@@ -17,6 +17,17 @@ import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
 const TEMPLE_NAME = "कृष्णकुंज माँ कर्मा धाम";
 const TEMPLE_ADDRESS = "सिविल लाईन रोड, (अकरजन) खैरागढ़, (छ.ग.)";
 
+const JAI_SLOGANS = "।।जय कर्मा।।      ।।जय भामाशाह।।    ।।जय राजिम।।";
+
+const COMMITTEE_MEMBERS = [
+  { name: "श्री गिरधारी साहू", post: "अध्यक्ष", phone: "9691065812" },
+  { name: "श्री भागवत साहू", post: "सचिव", phone: "8103144031" },
+  { name: "श्रीमती कांति साहू", post: "कोषाध्यक्ष", phone: "9340159613" },
+  { name: "श्री फुलदास साहू", post: "सामग्री प्रभारी", phone: "9589781615" },
+  { name: "श्री सुशील साहू", post: "उपकोषाध्यक्ष", phone: "9009250736" },
+  { name: "श्रीमती प्रमिला साहू", post: "प्रचार सचिव", phone: "9907271071" },
+];
+
 const MAIN_MESSAGE =
   "केवल एक मंदिर का निर्माण नहीं है, यह जिला साहू संघ खैरागढ़-छुईखदान-गंडई क्षेत्र के संपूर्ण साहू समाज के स्वाभिमान, गौरव और अटूट एकता का पावन प्रतीक है। साहू समाज के राष्ट्र गौरव परम पूज्य संत माता कर्मा और छत्तीसगढ़ के राजिम धाम मे बिराजे साहू समाज के आराध्य माता राजिम का दिव्य भव्य नवनिर्मित मंदिर (अनुमानित लागत ₹25 लाख) आकार ले रहा है। आगामी फरवरी 2027 को मंदिर के गर्भगृह में दिव्य मूर्तियों की प्राण-प्रतिष्ठा की जाएगी।आप सभी से करबद्ध और भावपूर्ण निवेदन है कि अपने पूर्वजों की पावन स्मृति में, इस महायज्ञ में अपनी श्रद्धा अनुसार समर्पण निधि या निर्माण सामग्री प्रदान कर पुण्य के भागीदार बनें।";
 
@@ -162,15 +173,55 @@ export default function HomePage() {
       <Navigation />
 
       <main className="flex-1">
-        {/* ─── TOP BRAND TITLE ─── */}
+        {/* ─── TOP BRAND TITLE WITH MATA PHOTOS ─── */}
         <div className="bg-warm-white border-b border-light-beige">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 text-center">
-            <h1
-              className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight"
-              style={{ color: "#E88A24" }}
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7">
+            {/* Jai Slogans */}
+            <p
+              className="text-center text-sm sm:text-base md:text-lg font-semibold tracking-wide mb-5 sm:mb-7"
+              style={{ color: "#E8A23A" }}
             >
-              {TEMPLE_NAME}
-            </h1>
+              {JAI_SLOGANS}
+            </p>
+
+            {/* Mata Photos + Temple Name */}
+            <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-10">
+              {/* Left: Karma Mata Photo */}
+              <div className="flex-shrink-0 w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-2 border-light-gold"
+                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
+              >
+                <Image
+                  src="/images/karma-mata.png"
+                  alt="संत माता कर्मा"
+                  width={200}
+                  height={200}
+                  className="w-full h-full object-cover"
+                  priority
+                />
+              </div>
+
+              {/* Center: Temple Name */}
+              <h1
+                className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-tight leading-tight text-center flex-1"
+                style={{ color: "#E88A24" }}
+              >
+                {TEMPLE_NAME}
+              </h1>
+
+              {/* Right: Mata Photo */}
+              <div className="flex-shrink-0 w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full overflow-hidden border-2 border-light-gold"
+                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
+              >
+                <Image
+                  src="/images/mata-photo.png"
+                  alt="माता राजिम"
+                  width={200}
+                  height={200}
+                  className="w-full h-full object-cover"
+                  priority
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -471,43 +522,75 @@ export default function HomePage() {
         className="border-t border-light-beige bg-warm-white mt-auto"
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-          <div className="text-center">
+          {/* Temple Name & Address */}
+          <div className="text-center mb-6">
             <p
               className="text-lg sm:text-xl font-bold mb-1"
               style={{ color: "#E88A24" }}
             >
               {TEMPLE_NAME}
             </p>
-            <p className="text-xs sm:text-sm text-muted-brown mb-6">
+            <p className="text-xs sm:text-sm text-muted-brown">
               {TEMPLE_ADDRESS}
             </p>
-
-            {/* Footer Links */}
-            <nav
-              className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-6"
-              aria-label="फुटर नेविगेशन"
-            >
-              {FOOTER_LINKS.map((link, idx) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="text-xs sm:text-sm text-muted-brown hover:text-elegant-orange transition-colors"
-                >
-                  {link.label}
-                  {idx < FOOTER_LINKS.length - 1 && (
-                    <span className="hidden sm:inline text-light-beige ml-4">|</span>
-                  )}
-                </a>
-              ))}
-            </nav>
-
-            <OrnamentalDivider />
-
-            <p className="text-xs text-muted-brown mt-2">
-              © {new Date().getFullYear()} {TEMPLE_NAME} — जिला साहू संघ
-              खैरागढ़-छुईखदान-गंडई
-            </p>
           </div>
+
+          {/* Committee Contact Details */}
+          <div className="mb-6">
+            <h3
+              className="text-base sm:text-lg font-bold text-center mb-4"
+              style={{ color: "#7A3B3B" }}
+            >
+              संपर्क
+            </h3>
+            <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+              {COMMITTEE_MEMBERS.map((member) => (
+                <div
+                  key={member.phone}
+                  className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 py-2 px-3 rounded-lg bg-warm-ivory/60 border border-light-beige"
+                >
+                  <span className="font-semibold text-sm sm:text-base" style={{ color: "#5A3A24" }}>
+                    {member.name}
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium" style={{ color: "#E8A23A" }}>
+                    {member.post}
+                  </span>
+                  <a
+                    href={`tel:${member.phone}`}
+                    className="text-xs sm:text-sm text-muted-brown hover:text-elegant-orange transition-colors"
+                  >
+                    मो.नं. {member.phone}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer Links */}
+          <nav
+            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-4"
+            aria-label="फुटर नेविगेशन"
+          >
+            {FOOTER_LINKS.map((link, idx) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-xs sm:text-sm text-muted-brown hover:text-elegant-orange transition-colors"
+              >
+                {link.label}
+                {idx < FOOTER_LINKS.length - 1 && (
+                  <span className="hidden sm:inline text-light-beige ml-4">|</span>
+                )}
+              </a>
+            ))}
+          </nav>
+
+          <OrnamentalDivider />
+
+          <p className="text-xs text-muted-brown mt-2 text-center">
+            © {new Date().getFullYear()} {TEMPLE_NAME} — जिला साहू संघ
+            खैरागढ़-छुईखदान-गंडई
+          </p>
         </div>
       </footer>
     </div>
