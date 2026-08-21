@@ -17,3 +17,42 @@ Stage Summary:
 - Browser autoplay restrictions handled with user-interaction fallback
 - File: `/home/z/my-project/src/app/page.tsx` (lines 168-212)
 - Audio: `/home/z/my-project/public/audio/temple-bell.mp3`
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Build donation backend — Prisma Donation model, payment service, and 5 API routes
+
+Work Log:
+- Added `Donation` model to `prisma/schema.prisma` with 18 fields (id, receiptNumber, donorName, mobile, email, address, city, district, state, pincode, amount, currency, paymentMethod, paymentOrderId, transactionId, paymentStatus, createdAt, paidAt, receiptGeneratedAt)
+- Ran `bun run db:push` — schema synced and Prisma Client regenerated successfully
+- Created payment service abstraction at `src/lib/payment/service.ts`:
+  - `createPaymentOrder()` — generates receipt number (KMD-2026-XXXXXX), persists PENDING donation in DB, builds UPI deep-link, returns orderId/upiLink/qrData
+  - `verifyPayment()` — returns current DB status for an order (production: would call real gateway API)
+  - `getPaymentStatus()` — detailed status with amount and receipt number
+  - UPI_ID configurable via `PAYMENT_UPI_ID` env var (default: temple@upi)
+  - Merchant name: कृष्णकुंज माँ कर्मा धाम
+- Created re-export index at `src/lib/payment/index.ts`
+- Created 5 API routes:
+  - `POST /api/donate/create-order` — Zod validation (amount≥100, name≥2 chars, 10-digit mobile), Hindi error messages, returns orderId/receiptNumber/upiLink
+  - `POST /api/donate/verify-payment` — returns paymentStatus and transactionId for given orderId
+  - `POST /api/donate/confirm-payment` — marks donation as PROCESSING when donor confirms UPI payment
+  - `GET /api/donate/receipt/[orderId]` — returns full donation record for receipt page
+  - `POST /api/donate/mark-success` — simulates gateway webhook, sets status to SUCCESS with generated transaction ID
+- All validation errors in Hindi
+- All files pass lint (pre-existing page.tsx audio error unrelated)
+- Dev server running cleanly with no compilation errors
+
+Stage Summary:
+- Complete donation backend ready for frontend integration
+- Payment service is a clean abstraction — swap UPI logic for Razorpay/PhonePe when ready
+- No payment secrets exposed to client (UPI link/QR data only)
+- Files created:
+  - `/home/z/my-project/prisma/schema.prisma` (updated)
+  - `/home/z/my-project/src/lib/payment/service.ts`
+  - `/home/z/my-project/src/lib/payment/index.ts`
+  - `/home/z/my-project/src/app/api/donate/create-order/route.ts`
+  - `/home/z/my-project/src/app/api/donate/verify-payment/route.ts`
+  - `/home/z/my-project/src/app/api/donate/confirm-payment/route.ts`
+  - `/home/z/my-project/src/app/api/donate/receipt/[orderId]/route.ts`
+  - `/home/z/my-project/src/app/api/donate/mark-success/route.ts`

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   MapPin,
@@ -169,75 +169,61 @@ function SectionHeading({ children, className = "" }: { children: React.ReactNod
 /* ─── Temple bell hook: loops user's MP3 continuously ─── */
 function useTempleBell() {
   const [bellPlaying, setBellPlaying] = useState(false);
-  const audioRef = useState<HTMLAudioElement | null>(null);
-  const audio = audioRef[0];
-  const setAudio = audioRef[1];
-  const fadeRef = useState<NodeJS.Timeout | null>(null);
-  const fadeTimer = fadeRef[0];
-  const setFadeTimer = fadeRef[1];
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fadeIn = useCallback(() => {
-    if (!audio) return;
-    if (fadeTimer) clearInterval(fadeTimer);
+  const fadeIn = useCallback((audio: HTMLAudioElement) => {
+    if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
     const t = setInterval(() => {
-      if (!audio) { clearInterval(t); return; }
       if (audio.volume < 0.6) {
         audio.volume = Math.min(audio.volume + 0.03, 0.6);
       } else {
         clearInterval(t);
       }
     }, 100);
-    setFadeTimer(t);
-  }, [audio, fadeTimer, setFadeTimer]);
+    fadeTimerRef.current = t;
+  }, []);
 
   const toggleBell = useCallback(async () => {
     try {
-      if (!audio) {
+      if (!audioRef.current) {
         const a = new Audio("/audio/temple-bell.mp3");
         a.loop = true;
         a.volume = 0;
-        setAudio(a);
+        audioRef.current = a;
         await a.play();
         setBellPlaying(true);
-        // start fade after audio is set
-        setTimeout(() => {
-          const t = setInterval(() => {
-            if (a.volume < 0.6) {
-              a.volume = Math.min(a.volume + 0.03, 0.6);
-            } else {
-              clearInterval(t);
-            }
-          }, 100);
-          setFadeTimer(t);
-        }, 50);
-      } else if (audio.paused) {
-        audio.volume = 0;
-        await audio.play();
+        setTimeout(() => fadeIn(a), 50);
+      } else if (audioRef.current.paused) {
+        const a = audioRef.current;
+        a.volume = 0;
+        await a.play();
         setBellPlaying(true);
-        fadeIn();
+        fadeIn(a);
       } else {
-        // fade out then pause
-        if (fadeTimer) clearInterval(fadeTimer);
+        const a = audioRef.current;
+        if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
         const t = setInterval(() => {
-          if (audio.volume > 0.05) {
-            audio.volume = Math.max(audio.volume - 0.05, 0);
+          if (a.volume > 0.05) {
+            a.volume = Math.max(a.volume - 0.05, 0);
           } else {
-            audio.pause();
+            a.pause();
             clearInterval(t);
             setBellPlaying(false);
           }
         }, 50);
+        fadeTimerRef.current = t;
       }
     } catch {
       // audio blocked
     }
-  }, [audio, fadeTimer, setAudio, setFadeTimer, fadeIn]);
+  }, [fadeIn]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audio) { audio.pause(); audio.src = ""; }
-      if (fadeTimer) clearInterval(fadeTimer);
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ""; }
+      if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
     };
   }, []);
 

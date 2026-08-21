@@ -30,3 +30,25 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Donation {
+  id                String    @id @default(cuid())
+  receiptNumber     String    @unique
+  donorName         String
+  mobile            String
+  email             String?
+  address           String?
+  city              String?
+  district          String?
+  state             String?
+  pincode           String?
+  amount            Int
+  currency          String    @default("INR")
+  paymentMethod     String?
+  paymentOrderId    String?   @unique
+  transactionId     String?
+  paymentStatus     String    @default("PENDING") // PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED, REFUNDED
+  createdAt         DateTime  @default(now())
+  paidAt            DateTime?
+  receiptGeneratedAt DateTime?
+}
