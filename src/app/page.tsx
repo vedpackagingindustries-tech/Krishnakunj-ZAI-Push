@@ -265,38 +265,65 @@ export default function HomePage() {
             </p>
 
             {/* Mata Photos + Temple Name */}
-            <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-10">
-              {/* Left: Karma Mata Photo */}
-              <div className="flex-shrink-0 w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
-                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
+            <div className="flex flex-col items-center gap-3 sm:gap-0 sm:flex-row sm:justify-center sm:gap-6 md:gap-10">
+              {/* Mobile: photos side by side above heading */}
+              <div className="flex items-center justify-center gap-4 sm:hidden">
+                <div className="flex-shrink-0 w-24 h-32 rounded-2xl overflow-hidden border-2 border-light-gold"
+                  style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)", backgroundColor: "#FFF9ED" }}
+                >
+                  <Image
+                    src="/images/karma-mata.png"
+                    alt="संत माता कर्मा"
+                    width={200}
+                    height={250}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
+                </div>
+                <div className="flex-shrink-0 w-24 h-32 rounded-2xl overflow-hidden border-2 border-light-gold"
+                  style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)", backgroundColor: "#FFF9ED" }}
+                >
+                  <Image
+                    src="/images/mata-photo.png"
+                    alt="माता राजिम"
+                    width={200}
+                    height={250}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
+                </div>
+              </div>
+
+              {/* Center: Temple Name */}
+              <h1
+                className="temple-title-animated text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none text-center whitespace-nowrap overflow-visible sm:flex-1"
+              >
+                {TEMPLE_NAME}
+              </h1>
+
+              {/* Desktop/tablet: photos flanking heading (hidden on mobile) */}
+              <div className="hidden sm:block flex-shrink-0 w-28 h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
+                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)", backgroundColor: "#FFF9ED" }}
               >
                 <Image
                   src="/images/karma-mata.png"
                   alt="संत माता कर्मा"
                   width={200}
                   height={250}
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-contain"
                   priority
                 />
               </div>
 
-              {/* Center: Temple Name */}
-              <h1
-                className="temple-title-animated text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none text-center flex-1 whitespace-nowrap overflow-visible"
-              >
-                {TEMPLE_NAME}
-              </h1>
-
-              {/* Right: Mata Photo */}
-              <div className="flex-shrink-0 w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
-                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
+              <div className="hidden sm:block flex-shrink-0 w-28 h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
+                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)", backgroundColor: "#FFF9ED" }}
               >
                 <Image
                   src="/images/mata-photo.png"
                   alt="माता राजिम"
                   width={200}
                   height={250}
-                  className="w-full h-full object-cover object-top"
+                  className="w-full h-full object-contain"
                   priority
                 />
               </div>
