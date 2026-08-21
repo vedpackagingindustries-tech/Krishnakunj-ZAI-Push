@@ -294,14 +294,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Center: Temple Name */}
-              <h1
-                className="temple-title-animated text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none text-center whitespace-nowrap overflow-visible sm:flex-1"
-              >
-                {TEMPLE_NAME}
-              </h1>
-
-              {/* Desktop/tablet: photos flanking heading (hidden on mobile) */}
+              {/* Desktop/tablet: LEFT photo (before heading) */}
               <div className="hidden sm:block flex-shrink-0 w-28 h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
                 style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)", backgroundColor: "#FFF9ED" }}
               >
@@ -315,6 +308,14 @@ export default function HomePage() {
                 />
               </div>
 
+              {/* Center: Temple Name */}
+              <h1
+                className="temple-title-animated text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none text-center whitespace-nowrap overflow-visible sm:flex-1"
+              >
+                {TEMPLE_NAME}
+              </h1>
+
+              {/* Desktop/tablet: RIGHT photo (after heading) */}
               <div className="hidden sm:block flex-shrink-0 w-28 h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
                 style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)", backgroundColor: "#FFF9ED" }}
               >
