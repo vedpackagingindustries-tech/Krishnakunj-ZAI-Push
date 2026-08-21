@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import {
   MapPin,
@@ -165,53 +166,86 @@ function SectionHeading({ children, className = "" }: { children: React.ReactNod
 /* ═══════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════ */
-/* ─── Temple bell sound — loops continuously on homepage ─── */
-let bellAudio: HTMLAudioElement | null = null;
+/* ─── Temple bell hook: loops user's MP3 continuously ─── */
+function useTempleBell() {
+  const [bellPlaying, setBellPlaying] = useState(false);
+  const audioRef = useState<HTMLAudioElement | null>(null);
+  const audio = audioRef[0];
+  const setAudio = audioRef[1];
+  const fadeRef = useState<NodeJS.Timeout | null>(null);
+  const fadeTimer = fadeRef[0];
+  const setFadeTimer = fadeRef[1];
 
-function startTempleBell() {
-  if (typeof window === "undefined") return;
-  if (bellAudio) return; // already playing
-  try {
-    bellAudio = new Audio("/audio/temple-bell.mp3");
-    bellAudio.loop = true;
-    bellAudio.volume = 0;
-    bellAudio.play().then(() => {
-      // Smooth fade-in over 2 seconds
-      const fadeInterval = setInterval(() => {
-        if (!bellAudio) { clearInterval(fadeInterval); return; }
-        if (bellAudio.volume < 0.6) {
-          bellAudio.volume = Math.min(bellAudio.volume + 0.03, 0.6);
-        } else {
-          clearInterval(fadeInterval);
-        }
-      }, 100);
-    }).catch(() => {
-      // Browser blocked autoplay — wait for first user interaction
-      const resumeOnInteraction = () => {
-        if (bellAudio && bellAudio.paused) {
-          bellAudio.play().then(() => {
-            const fadeInterval = setInterval(() => {
-              if (!bellAudio) { clearInterval(fadeInterval); return; }
-              if (bellAudio.volume < 0.6) {
-                bellAudio.volume = Math.min(bellAudio.volume + 0.03, 0.6);
-              } else {
-                clearInterval(fadeInterval);
-              }
-            }, 100);
-          }).catch(() => {});
-        }
-        document.removeEventListener("click", resumeOnInteraction);
-        document.removeEventListener("touchstart", resumeOnInteraction);
-      };
-      document.addEventListener("click", resumeOnInteraction, { once: true });
-      document.addEventListener("touchstart", resumeOnInteraction, { once: true });
-    });
-  } catch {
-    // Audio not supported — silent fallback
-  }
+  const fadeIn = useCallback(() => {
+    if (!audio) return;
+    if (fadeTimer) clearInterval(fadeTimer);
+    const t = setInterval(() => {
+      if (!audio) { clearInterval(t); return; }
+      if (audio.volume < 0.6) {
+        audio.volume = Math.min(audio.volume + 0.03, 0.6);
+      } else {
+        clearInterval(t);
+      }
+    }, 100);
+    setFadeTimer(t);
+  }, [audio, fadeTimer, setFadeTimer]);
+
+  const toggleBell = useCallback(async () => {
+    try {
+      if (!audio) {
+        const a = new Audio("/audio/temple-bell.mp3");
+        a.loop = true;
+        a.volume = 0;
+        setAudio(a);
+        await a.play();
+        setBellPlaying(true);
+        // start fade after audio is set
+        setTimeout(() => {
+          const t = setInterval(() => {
+            if (a.volume < 0.6) {
+              a.volume = Math.min(a.volume + 0.03, 0.6);
+            } else {
+              clearInterval(t);
+            }
+          }, 100);
+          setFadeTimer(t);
+        }, 50);
+      } else if (audio.paused) {
+        audio.volume = 0;
+        await audio.play();
+        setBellPlaying(true);
+        fadeIn();
+      } else {
+        // fade out then pause
+        if (fadeTimer) clearInterval(fadeTimer);
+        const t = setInterval(() => {
+          if (audio.volume > 0.05) {
+            audio.volume = Math.max(audio.volume - 0.05, 0);
+          } else {
+            audio.pause();
+            clearInterval(t);
+            setBellPlaying(false);
+          }
+        }, 50);
+      }
+    } catch {
+      // audio blocked
+    }
+  }, [audio, fadeTimer, setAudio, setFadeTimer, fadeIn]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audio) { audio.pause(); audio.src = ""; }
+      if (fadeTimer) clearInterval(fadeTimer);
+    };
+  }, []);
+
+  return { bellPlaying, toggleBell };
 }
 
 export default function HomePage() {
+  const { bellPlaying, toggleBell } = useTempleBell();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FFF9ED" }}>
@@ -277,7 +311,6 @@ export default function HomePage() {
             <div
               className="relative rounded-2xl overflow-hidden"
               style={{ boxShadow: "0 8px 30px rgba(214,174,92,0.15)" }}
-              ref={(el) => { if (el) startTempleBell(); }}
             >
               <Image
                 src="/images/temple-photo.jpeg"
@@ -289,24 +322,16 @@ export default function HomePage() {
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1024px"
               />
 
-              {/* ── Divine rays from centre (Krishna/Mata area) ── */}
+              {/* ── Divine rays from centre (subtle) ── */}
               <div className="divine-rays-container">
-                <div className="divine-ray" />
-                <div className="divine-ray" />
                 <div className="divine-ray" />
                 <div className="divine-ray" />
                 <div className="divine-ray" />
                 <div className="divine-glow-center" />
               </div>
 
-              {/* ── Sparkle particles (upper area only) ── */}
+              {/* ── Sparkle particles (few, subtle) ── */}
               <div className="sparkle-container">
-                <div className="sparkle" /><div className="sparkle" />
-                <div className="sparkle" /><div className="sparkle" />
-                <div className="sparkle" /><div className="sparkle" />
-                <div className="sparkle" /><div className="sparkle" />
-                <div className="sparkle" /><div className="sparkle" />
-                <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
                 <div className="sparkle" /><div className="sparkle" />
@@ -586,6 +611,22 @@ export default function HomePage() {
           </div>
         </Section>
       </main>
+
+      {/* ─── FLOATING BELL BUTTON ─── */}
+      <button
+        onClick={toggleBell}
+        aria-label={bellPlaying ? "घंटी बंद करें" : "घंटी बजाएं"}
+        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-300 border-2"
+        style={{
+          backgroundColor: bellPlaying ? "#E88A24" : "#FFFFFF",
+          borderColor: "#D6AE5C",
+          boxShadow: bellPlaying
+            ? "0 4px 20px rgba(232,138,36,0.4)"
+            : "0 2px 12px rgba(214,174,92,0.25)",
+        }}
+      >
+        {bellPlaying ? "🔕" : "🔔"}
+      </button>
 
       {/* ─── FOOTER ─── */}
       <footer

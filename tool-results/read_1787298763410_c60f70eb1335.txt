@@ -1,0 +1,669 @@
+     1→"use client";
+     2→
+     3→import Image from "next/image";
+     4→import {
+     5→  MapPin,
+     6→  CalendarDays,
+     7→  Heart,
+     8→  Camera,
+     9→  Video,
+    10→  ChevronRight,
+    11→  Flower2,
+    12→} from "lucide-react";
+    13→import Navigation from "@/components/temple/Navigation";
+    14→import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
+    15→
+    16→/* ─── Data Constants ─── */
+    17→const TEMPLE_NAME = "कृष्णकुंज माँ कर्मा धाम";
+    18→const TEMPLE_ADDRESS = "सिविल लाईन रोड, (अकरजन) खैरागढ़, (छ.ग.)";
+    19→
+    20→const JAI_SLOGANS = "।।जय कर्मा।।      ।।जय भामाशाह।।    ।।जय राजिम।।";
+    21→
+    22→const COMMITTEE_MEMBERS = [
+    23→  { name: "श्री गिरधारी साहू", post: "अध्यक्ष", phone: "9691065812" },
+    24→  { name: "श्री भागवत साहू", post: "सचिव", phone: "8103144031" },
+    25→  { name: "श्रीमती कांति साहू", post: "कोषाध्यक्ष", phone: "9340159613" },
+    26→  { name: "श्री फुलदास साहू", post: "सामग्री प्रभारी", phone: "9589781615" },
+    27→  { name: "श्री सुशील साहू", post: "उपकोषाध्यक्ष", phone: "9009250736" },
+    28→  { name: "श्रीमती प्रमिला साहू", post: "प्रचार सचिव", phone: "9907271071" },
+    29→];
+    30→
+    31→const MAIN_MESSAGE =
+    32→  "केवल एक मंदिर का निर्माण नहीं है, यह जिला साहू संघ खैरागढ़-छुईखदान-गंडई क्षेत्र के संपूर्ण साहू समाज के स्वाभिमान, गौरव और अटूट एकता का पावन प्रतीक है। साहू समाज के राष्ट्र गौरव परम पूज्य संत माता कर्मा और छत्तीसगढ़ के राजिम धाम मे बिराजे साहू समाज के आराध्य माता राजिम का दिव्य भव्य नवनिर्मित मंदिर (अनुमानित लागत ₹25 लाख) आकार ले रहा है। आगामी फरवरी 2027 को मंदिर के गर्भगृह में दिव्य मूर्तियों की प्राण-प्रतिष्ठा की जाएगी।आप सभी से करबद्ध और भावपूर्ण निवेदन है कि अपने पूर्वजों की पावन स्मृति में, इस महायज्ञ में अपनी श्रद्धा अनुसार समर्पण निधि या निर्माण सामग्री प्रदान कर पुण्य के भागीदार बनें।";
+    33→
+    34→const PROGRESS_STAGES = [
+    35→  { label: "भूमि कार्य" },
+    36→  { label: "नींव" },
+    37→  { label: "निर्माण कार्य" },
+    38→  { label: "गर्भगृह" },
+    39→  { label: "अन्य कार्य" },
+    40→];
+    41→
+    42→const FOOTER_LINKS = [
+    43→  { label: "मुख्यपृष्ठ", href: "/" },
+    44→  { label: "मंदिर के बारे में", href: "/about" },
+    45→  { label: "मंदिर निर्माण", href: "/construction" },
+    46→  { label: "वीडियो", href: "/videos" },
+    47→  { label: "संपर्क", href: "/contact" },
+    48→  { label: "दान करें", href: "/donate" },
+    49→];
+    50→
+    51→/* ─── Decorative SVG: Lotus ─── */
+    52→function LotusIcon({ className = "w-8 h-8" }: { className?: string }) {
+    53→  return (
+    54→    <svg
+    55→      viewBox="0 0 40 40"
+    56→      fill="none"
+    57→      className={className}
+    58→      aria-hidden="true"
+    59→    >
+    60→      <path
+    61→        d="M20 4C20 4 14 12 14 20C14 24.4 16.7 28 20 30C23.3 28 26 24.4 26 20C26 12 20 4 20 4Z"
+    62→        fill="#F3C46B"
+    63→        opacity="0.35"
+    64→      />
+    65→      <path
+    66→        d="M20 8C20 8 10 16 10 22C10 26.4 14.5 30 20 32C25.5 30 30 26.4 30 22C30 16 20 8 20 8Z"
+    67→        fill="#E8A23A"
+    68→        opacity="0.2"
+    69→      />
+    70→      <path
+    71→        d="M20 14C20 14 6 18 4 24C2 30 10 34 20 36C30 34 38 30 36 24C34 18 20 14 20 14Z"
+    72→        fill="#D6AE5C"
+    73→        opacity="0.15"
+    74→      />
+    75→      <circle cx="20" cy="20" r="2" fill="#E8A23A" opacity="0.5" />
+    76→    </svg>
+    77→  );
+    78→}
+    79→
+    80→/* ─── Decorative SVG: Diya (lamp) ─── */
+    81→function DiyaIcon({ className = "w-6 h-6" }: { className?: string }) {
+    82→  return (
+    83→    <svg
+    84→      viewBox="0 0 24 24"
+    85→      fill="none"
+    86→      className={className}
+    87→      aria-hidden="true"
+    88→    >
+    89→      <path
+    90→        d="M12 2C12 2 8 6 8 12C8 14 9 16 10.5 17H13.5C15 16 16 14 16 12C16 6 12 2 12 2Z"
+    91→        fill="#F3C46B"
+    92→        opacity="0.6"
+    93→      />
+    94→      <ellipse cx="12" cy="18" rx="5" ry="2" fill="#E8A23A" opacity="0.4" />
+    95→      <path
+    96→        d="M12 6V10"
+    97→        stroke="#E88A24"
+    98→        strokeWidth="1"
+    99→        opacity="0.5"
+   100→        strokeLinecap="round"
+   101→      />
+   102→    </svg>
+   103→  );
+   104→}
+   105→
+   106→/* ─── Decorative SVG: Temple arch ─── */
+   107→function TempleArchDivider() {
+   108→  return (
+   109→    <div className="flex items-center justify-center py-6" aria-hidden="true">
+   110→      <span className="block h-px flex-1 max-w-24 bg-gradient-to-r from-transparent via-light-gold to-transparent" />
+   111→      <svg
+   112→        width="32"
+   113→        height="20"
+   114→        viewBox="0 0 32 20"
+   115→        fill="none"
+   116→        className="mx-3"
+   117→      >
+   118→        <path
+   119→          d="M2 18V8C2 4 6 1 16 1C26 1 30 4 30 8V18"
+   120→          stroke="#D6AE5C"
+   121→          strokeWidth="1.5"
+   122→          opacity="0.5"
+   123→          fill="none"
+   124→        />
+   125→        <path
+   126→          d="M0 19H32"
+   127→          stroke="#D6AE5C"
+   128→          strokeWidth="1"
+   129→          opacity="0.4"
+   130→        />
+   131→      </svg>
+   132→      <span className="block h-px flex-1 max-w-24 bg-gradient-to-l from-transparent via-light-gold to-transparent" />
+   133→    </div>
+   134→  );
+   135→}
+   136→
+   137→/* ─── Section Wrapper ─── */
+   138→function Section({
+   139→  children,
+   140→  className = "",
+   141→  id,
+   142→}: {
+   143→  children: React.ReactNode;
+   144→  className?: string;
+   145→  id?: string;
+   146→}) {
+   147→  return (
+   148→    <section id={id} className={`px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 ${className}`}>
+   149→      <div className="max-w-5xl mx-auto">{children}</div>
+   150→    </section>
+   151→  );
+   152→}
+   153→
+   154→/* ─── Section Heading ─── */
+   155→function SectionHeading({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+   156→  return (
+   157→    <h2
+   158→      className={`text-2xl sm:text-3xl font-bold text-deep-warm-brown text-center mb-3 leading-relaxed ${className}`}
+   159→    >
+   160→      {children}
+   161→    </h2>
+   162→  );
+   163→}
+   164→
+   165→/* ═══════════════════════════════════════════════
+   166→   MAIN PAGE
+   167→   ═══════════════════════════════════════════════ */
+   168→/* ─── Temple bell sound — loops continuously on homepage ─── */
+   169→let bellAudio: HTMLAudioElement | null = null;
+   170→
+   171→function startTempleBell() {
+   172→  if (typeof window === "undefined") return;
+   173→  if (bellAudio) return; // already playing
+   174→  try {
+   175→    bellAudio = new Audio("/audio/temple-bell.mp3");
+   176→    bellAudio.loop = true;
+   177→    bellAudio.volume = 0;
+   178→    bellAudio.play().then(() => {
+   179→      // Smooth fade-in over 2 seconds
+   180→      const fadeInterval = setInterval(() => {
+   181→        if (!bellAudio) { clearInterval(fadeInterval); return; }
+   182→        if (bellAudio.volume < 0.6) {
+   183→          bellAudio.volume = Math.min(bellAudio.volume + 0.03, 0.6);
+   184→        } else {
+   185→          clearInterval(fadeInterval);
+   186→        }
+   187→      }, 100);
+   188→    }).catch(() => {
+   189→      // Browser blocked autoplay — wait for first user interaction
+   190→      const resumeOnInteraction = () => {
+   191→        if (bellAudio && bellAudio.paused) {
+   192→          bellAudio.play().then(() => {
+   193→            const fadeInterval = setInterval(() => {
+   194→              if (!bellAudio) { clearInterval(fadeInterval); return; }
+   195→              if (bellAudio.volume < 0.6) {
+   196→                bellAudio.volume = Math.min(bellAudio.volume + 0.03, 0.6);
+   197→              } else {
+   198→                clearInterval(fadeInterval);
+   199→              }
+   200→            }, 100);
+   201→          }).catch(() => {});
+   202→        }
+   203→        document.removeEventListener("click", resumeOnInteraction);
+   204→        document.removeEventListener("touchstart", resumeOnInteraction);
+   205→      };
+   206→      document.addEventListener("click", resumeOnInteraction, { once: true });
+   207→      document.addEventListener("touchstart", resumeOnInteraction, { once: true });
+   208→    });
+   209→  } catch {
+   210→    // Audio not supported — silent fallback
+   211→  }
+   212→}
+   213→
+   214→export default function HomePage() {
+   215→
+   216→  return (
+   217→    <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FFF9ED" }}>
+   218→      {/* ─── NAVIGATION ─── */}
+   219→      <Navigation />
+   220→
+   221→      <main className="flex-1">
+   222→        {/* ─── TOP BRAND TITLE WITH MATA PHOTOS ─── */}
+   223→        <div className="bg-warm-white border-b border-light-beige">
+   224→          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-7">
+   225→            {/* Jai Slogans */}
+   226→            <p
+   227→              className="text-center text-sm sm:text-base md:text-lg font-semibold tracking-wide mb-5 sm:mb-7"
+   228→              style={{ color: "#E8A23A" }}
+   229→            >
+   230→              {JAI_SLOGANS}
+   231→            </p>
+   232→
+   233→            {/* Mata Photos + Temple Name */}
+   234→            <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-10">
+   235→              {/* Left: Karma Mata Photo */}
+   236→              <div className="flex-shrink-0 w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
+   237→                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
+   238→              >
+   239→                <Image
+   240→                  src="/images/karma-mata.png"
+   241→                  alt="संत माता कर्मा"
+   242→                  width={200}
+   243→                  height={250}
+   244→                  className="w-full h-full object-cover object-top"
+   245→                  priority
+   246→                />
+   247→              </div>
+   248→
+   249→              {/* Center: Temple Name */}
+   250→              <h1
+   251→                className="temple-title-animated text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-none text-center flex-1 whitespace-nowrap overflow-visible"
+   252→              >
+   253→                {TEMPLE_NAME}
+   254→              </h1>
+   255→
+   256→              {/* Right: Mata Photo */}
+   257→              <div className="flex-shrink-0 w-20 h-24 sm:w-28 sm:h-32 md:w-36 md:h-44 rounded-2xl overflow-hidden border-2 border-light-gold"
+   258→                style={{ boxShadow: "0 4px 16px rgba(214,174,92,0.25)" }}
+   259→              >
+   260→                <Image
+   261→                  src="/images/mata-photo.png"
+   262→                  alt="माता राजिम"
+   263→                  width={200}
+   264→                  height={250}
+   265→                  className="w-full h-full object-cover object-top"
+   266→                  priority
+   267→                />
+   268→              </div>
+   269→            </div>
+   270→          </div>
+   271→        </div>
+   272→
+   273→        {/* ─── HERO SECTION ─── */}
+   274→        <section className="relative" aria-label="मंदिर चित्र और संदेश">
+   275→          {/* Temple Photo with Divine Effects */}
+   276→          <div className="relative w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+   277→            <div
+   278→              className="relative rounded-2xl overflow-hidden"
+   279→              style={{ boxShadow: "0 8px 30px rgba(214,174,92,0.15)" }}
+   280→              ref={(el) => { if (el) startTempleBell(); }}
+   281→            >
+   282→              <Image
+   283→                src="/images/temple-photo.jpeg"
+   284→                alt="कृष्णकुंज माँ कर्मा धाम मंदिर"
+   285→                width={1200}
+   286→                height={800}
+   287→                className="w-full h-auto object-contain"
+   288→                priority
+   289→                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1024px"
+   290→              />
+   291→
+   292→              {/* ── Divine rays from centre (Krishna/Mata area) ── */}
+   293→              <div className="divine-rays-container">
+   294→                <div className="divine-ray" />
+   295→                <div className="divine-ray" />
+   296→                <div className="divine-ray" />
+   297→                <div className="divine-ray" />
+   298→                <div className="divine-ray" />
+   299→                <div className="divine-glow-center" />
+   300→              </div>
+   301→
+   302→              {/* ── Sparkle particles (upper area only) ── */}
+   303→              <div className="sparkle-container">
+   304→                <div className="sparkle" /><div className="sparkle" />
+   305→                <div className="sparkle" /><div className="sparkle" />
+   306→                <div className="sparkle" /><div className="sparkle" />
+   307→                <div className="sparkle" /><div className="sparkle" />
+   308→                <div className="sparkle" /><div className="sparkle" />
+   309→                <div className="sparkle" /><div className="sparkle" />
+   310→                <div className="sparkle" /><div className="sparkle" />
+   311→                <div className="sparkle" /><div className="sparkle" />
+   312→                <div className="sparkle" /><div className="sparkle" />
+   313→              </div>
+   314→            </div>
+   315→          </div>
+   316→
+   317→          {/* Hero Heading & Main Message */}
+   318→          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-8 sm:pb-12 text-center">
+   319→            <h2
+   320→              className="text-xl sm:text-2xl md:text-3xl font-bold leading-relaxed mb-6"
+   321→              style={{ color: "#7A3B3B" }}
+   322→            >
+   323→              प्रिय स्वजातीय बंधुओं एवं पदाधिकारीयो
+   324→            </h2>
+   325→
+   326→            <p
+   327→              className="text-base sm:text-lg leading-8 sm:leading-9 text-justify sm:text-center"
+   328→              style={{ color: "#5A3A24", lineHeight: "2" }}
+   329→            >
+   330→              {MAIN_MESSAGE}
+   331→            </p>
+   332→
+   333→            {/* Hero CTAs */}
+   334→            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
+   335→              <a
+   336→                href="/donate"
+   337→                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-elegant-orange hover:bg-soft-saffron text-white text-base sm:text-lg font-semibold rounded-full transition-colors shadow-md min-h-[48px]"
+   338→                style={{ boxShadow: "0 4px 15px rgba(232,138,36,0.3)" }}
+   339→              >
+   340→                🙏 अभी दान करें
+   341→              </a>
+   342→              <a
+   343→                href="/construction"
+   344→                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-warm-white text-deep-warm-brown text-base sm:text-lg font-medium rounded-full border-2 border-light-gold hover:border-soft-saffron hover:bg-warm-ivory transition-colors min-h-[48px]"
+   345→              >
+   346→                मंदिर निर्माण देखें
+   347→              </a>
+   348→            </div>
+   349→          </div>
+   350→        </section>
+   351→
+   352→        <TempleArchDivider />
+   353→
+   354→        {/* ─── TEMPLE INFORMATION SECTION ─── */}
+   355→        <Section id="temple-info" className="bg-warm-white">
+   356→          <LotusIcon className="w-12 h-12 mx-auto mb-4" />
+   357→          <SectionHeading>{TEMPLE_NAME}</SectionHeading>
+   358→          <OrnamentalDivider />
+   359→          <div className="flex flex-col items-center gap-3">
+   360→            <div className="flex items-center gap-2 text-muted-brown">
+   361→              <MapPin size={18} className="text-soft-saffron" />
+   362→              <span className="text-sm sm:text-base">{TEMPLE_ADDRESS}</span>
+   363→            </div>
+   364→          </div>
+   365→        </Section>
+   366→
+   367→        {/* ─── CONSTRUCTION COST HIGHLIGHT ─── */}
+   368→        <Section id="construction-cost">
+   369→          <DiyaIcon className="w-10 h-10 mx-auto mb-3" />
+   370→          <SectionHeading>मंदिर निर्माण का पावन संकल्प</SectionHeading>
+   371→          <OrnamentalDivider />
+   372→          <div className="flex flex-col items-center gap-4 mt-2">
+   373→            <div
+   374→              className="inline-block px-8 py-5 rounded-2xl border-2 border-light-gold bg-warm-white"
+   375→              style={{ boxShadow: "0 4px 20px rgba(214,174,92,0.12)" }}
+   376→            >
+   377→              <p className="text-sm text-muted-brown text-center mb-1">
+   378→                अनुमानित लागत
+   379→              </p>
+   380→              <p
+   381→                className="text-3xl sm:text-4xl font-extrabold text-center"
+   382→                style={{ color: "#E88A24" }}
+   383→              >
+   384→                ₹25 लाख
+   385→              </p>
+   386→            </div>
+   387→          </div>
+   388→        </Section>
+   389→
+   390→        {/* ─── PRAN-PRATISHTHA SECTION ─── */}
+   391→        <Section
+   392→          id="pran-pratishtha"
+   393→          className="bg-warm-white"
+   394→        >
+   395→          <div className="flex items-center justify-center gap-2 mb-4">
+   396→            <CalendarDays size={24} className="text-soft-saffron" />
+   397→          </div>
+   398→          <SectionHeading>प्राण-प्रतिष्ठा — फरवरी 2027</SectionHeading>
+   399→          <OrnamentalDivider />
+   400→          <p
+   401→            className="text-center text-base sm:text-lg max-w-2xl mx-auto leading-8"
+   402→            style={{ color: "#5A3A24" }}
+   403→          >
+   404→            आगामी फरवरी 2027 को मंदिर के गर्भगृह में दिव्य मूर्तियों की प्राण-प्रतिष्ठा
+   405→            की जाएगी।
+   406→          </p>
+   407→          <div className="flex justify-center mt-6">
+   408→            <div className="flex items-center gap-3">
+   409→              {[...Array(3)].map((_, i) => (
+   410→                <DiyaIcon key={i} className="w-8 h-8" />
+   411→              ))}
+   412→            </div>
+   413→          </div>
+   414→        </Section>
+   415→
+   416→        {/* ─── DONATION CTA SECTION ─── */}
+   417→        <Section
+   418→          id="donation-cta"
+   419→          className="relative overflow-hidden"
+   420→          style={{ background: "linear-gradient(135deg, #FFF9ED 0%, #EDE2D0 50%, #FFF9ED 100%)" }}
+   421→        >
+   422→          {/* Subtle decorative elements */}
+   423→          <LotusIcon className="absolute top-4 left-4 w-16 h-16 opacity-20" aria-hidden="true" />
+   424→          <LotusIcon className="absolute bottom-4 right-4 w-16 h-16 opacity-20" aria-hidden="true" />
+   425→
+   426→          <div className="relative z-10 text-center">
+   427→            <Heart size={32} className="mx-auto mb-3 text-deep-maroon" />
+   428→            <SectionHeading>इस पावन महायज्ञ में अपना योगदान दें</SectionHeading>
+   429→            <OrnamentalDivider />
+   430→            <p
+   431→              className="text-base sm:text-lg max-w-2xl mx-auto leading-8 mb-2"
+   432→              style={{ color: "#5A3A24" }}
+   433→            >
+   434→              अपनी श्रद्धा अनुसार समर्पण निधि अथवा निर्माण सामग्री प्रदान कर पुण्य
+   435→              के भागीदार बनें।
+   436→            </p>
+   437→
+   438→            <a
+   439→              href="/donate"
+   440→              className="inline-flex items-center justify-center gap-2 px-10 py-4 bg-elegant-orange hover:bg-soft-saffron text-white text-lg font-semibold rounded-full transition-colors shadow-lg mt-6 min-h-[52px]"
+   441→              style={{ boxShadow: "0 6px 20px rgba(232,138,36,0.35)" }}
+   442→            >
+   443→              🙏 अभी दान करें
+   444→            </a>
+   445→
+   446→            <p
+   447→              className="text-sm text-muted-brown mt-4 max-w-lg mx-auto leading-7"
+   448→            >
+   449→              आपका सहयोग मंदिर निर्माण के इस पावन कार्य में महत्वपूर्ण योगदान है।
+   450→            </p>
+   451→          </div>
+   452→        </Section>
+   453→
+   454→        <TempleArchDivider />
+   455→
+   456→        {/* ─── CONSTRUCTION PROGRESS ─── */}
+   457→        <Section id="progress" className="bg-warm-white">
+   458→          <SectionHeading>मंदिर निर्माण की प्रगति</SectionHeading>
+   459→          <OrnamentalDivider />
+   460→          <div className="mt-6 max-w-2xl mx-auto">
+   461→            {/* Placeholder/Empty State */}
+   462→            <div
+   463→              className="rounded-2xl border-2 border-dashed border-light-gold bg-warm-ivory/50 p-8 sm:p-12 text-center"
+   464→            >
+   465→              <Flower2 size={40} className="mx-auto mb-3 text-light-gold" />
+   466→              <p className="text-muted-brown text-sm sm:text-base">
+   467→                मंदिर निर्माण की प्रगति जल्द ही यहाँ अपडेट की जाएगी।
+   468→              </p>
+   469→              <div className="flex flex-wrap justify-center gap-3 mt-6">
+   470→                {PROGRESS_STAGES.map((stage) => (
+   471→                  <span
+   472→                    key={stage.label}
+   473→                    className="px-4 py-2 bg-warm-white rounded-full text-sm font-medium border border-light-beige text-muted-brown"
+   474→                  >
+   475→                    {stage.label}
+   476→                  </span>
+   477→                ))}
+   478→              </div>
+   479→            </div>
+   480→          </div>
+   481→          <div className="text-center mt-6">
+   482→            <a
+   483→              href="/construction"
+   484→              className="inline-flex items-center gap-1 text-sm font-medium text-soft-saffron hover:text-elegant-orange transition-colors"
+   485→            >
+   486→              पूरी प्रगति देखें
+   487→              <ChevronRight size={16} />
+   488→            </a>
+   489→          </div>
+   490→        </Section>
+   491→
+   492→        {/* ─── TEMPLE PHOTO GALLERY ─── */}
+   493→        <Section id="gallery">
+   494→          <Camera size={24} className="mx-auto mb-3 text-soft-saffron" />
+   495→          <SectionHeading>मंदिर निर्माण की झलकियाँ</SectionHeading>
+   496→          <OrnamentalDivider />
+   497→          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+   498→            {/* Featured: The attached temple photo */}
+   499→            <div
+   500→              className="sm:col-span-2 rounded-2xl overflow-hidden border border-light-gold"
+   501→              style={{ boxShadow: "0 2px 12px rgba(214,174,92,0.1)" }}
+   502→            >
+   503→              <Image
+   504→                src="/images/temple-photo.jpeg"
+   505→                alt="कृष्णकुंज माँ कर्मा धाम मंदिर — मुख्य दृश्य"
+   506→                width={1200}
+   507→                height={800}
+   508→                className="w-full h-auto object-contain"
+   509→                loading="lazy"
+   510→                sizes="(max-width: 640px) 100vw, 768px"
+   511→              />
+   512→            </div>
+   513→          </div>
+   514→          {/* Empty state for additional photos */}
+   515→          <div className="mt-6 text-center">
+   516→            <p className="text-sm text-muted-brown">
+   517→              अधिक चित्र जल्द ही जोड़े जाएंगे।
+   518→            </p>
+   519→          </div>
+   520→        </Section>
+   521→
+   522→        {/* ─── VIDEO SECTION ─── */}
+   523→        <Section id="videos" className="bg-warm-white">
+   524→          <Video size={24} className="mx-auto mb-3 text-soft-saffron" />
+   525→          <SectionHeading>
+   526→            मंदिर निर्माण एवं धार्मिक गतिविधियों की झलकियाँ
+   527→          </SectionHeading>
+   528→          <OrnamentalDivider />
+   529→          <div className="mt-6">
+   530→            {/* Empty State */}
+   531→            <div
+   532→              className="rounded-2xl border-2 border-dashed border-light-gold bg-warm-ivory/50 p-8 sm:p-12 text-center max-w-lg mx-auto"
+   533→            >
+   534→              <Video size={40} className="mx-auto mb-3 text-light-gold" />
+   535→              <p className="text-muted-brown text-sm sm:text-base">
+   536→                वीडियो जल्द ही यहाँ अपलोड किए जाएंगे।
+   537→              </p>
+   538→            </div>
+   539→          </div>
+   540→        </Section>
+   541→
+   542→        {/* ─── DONOR GRATITUDE ─── */}
+   543→        <Section
+   544→          id="gratitude"
+   545→          style={{ background: "linear-gradient(135deg, #FFF9ED 0%, #EDE2D0 50%, #FFF9ED 100%)" }}
+   546→        >
+   547→          <Heart size={28} className="mx-auto mb-3 text-deep-maroon" />
+   548→          <SectionHeading>सभी सहयोगकर्ताओं का हार्दिक धन्यवाद</SectionHeading>
+   549→          <OrnamentalDivider />
+   550→          <p
+   551→            className="text-center text-base sm:text-lg max-w-2xl mx-auto leading-8"
+   552→            style={{ color: "#5A3A24" }}
+   553→          >
+   554→            आपका सहयोग मंदिर निर्माण के इस पावन कार्य को आगे बढ़ाने में
+   555→            महत्वपूर्ण योगदान है।
+   556→          </p>
+   557→          <div className="text-center mt-6">
+   558→            <a
+   559→              href="/donate"
+   560→              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-elegant-orange hover:bg-soft-saffron text-white text-base font-semibold rounded-full transition-colors shadow-md min-h-[48px]"
+   561→            >
+   562→              मंदिर निर्माण में सहयोग करें
+   563→            </a>
+   564→          </div>
+   565→        </Section>
+   566→
+   567→        {/* ─── CONTACT SECTION ─── */}
+   568→        <Section id="contact" className="bg-warm-white">
+   569→          <MapPin size={24} className="mx-auto mb-3 text-soft-saffron" />
+   570→          <SectionHeading>संपर्क</SectionHeading>
+   571→          <OrnamentalDivider />
+   572→          <div className="flex flex-col items-center gap-3 mt-2">
+   573→            <p
+   574→              className="text-lg font-bold"
+   575→              style={{ color: "#E88A24" }}
+   576→            >
+   577→              {TEMPLE_NAME}
+   578→            </p>
+   579→            <div className="flex items-center gap-2 text-muted-brown">
+   580→              <MapPin size={16} className="text-soft-saffron" />
+   581→              <span className="text-sm sm:text-base">{TEMPLE_ADDRESS}</span>
+   582→            </div>
+   583→            <p className="text-sm text-muted-brown mt-2">
+   584→              अधिक जानकारी के लिए कृपया संपर्क करें।
+   585→            </p>
+   586→          </div>
+   587→        </Section>
+   588→      </main>
+   589→
+   590→      {/* ─── FOOTER ─── */}
+   591→      <footer
+   592→        className="border-t border-light-beige bg-warm-white mt-auto"
+   593→      >
+   594→        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+   595→          {/* Temple Name & Address */}
+   596→          <div className="text-center mb-6">
+   597→            <p
+   598→              className="text-lg sm:text-xl font-bold mb-1"
+   599→              style={{ color: "#E88A24" }}
+   600→            >
+   601→              {TEMPLE_NAME}
+   602→            </p>
+   603→            <p className="text-xs sm:text-sm text-muted-brown">
+   604→              {TEMPLE_ADDRESS}
+   605→            </p>
+   606→          </div>
+   607→
+   608→          {/* Committee Contact Details */}
+   609→          <div className="mb-6">
+   610→            <h3
+   611→              className="text-base sm:text-lg font-bold text-center mb-4"
+   612→              style={{ color: "#7A3B3B" }}
+   613→            >
+   614→              संपर्क
+   615→            </h3>
+   616→            <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+   617→              {COMMITTEE_MEMBERS.map((member) => (
+   618→                <div
+   619→                  key={member.phone}
+   620→                  className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 py-2 px-3 rounded-lg bg-warm-ivory/60 border border-light-beige"
+   621→                >
+   622→                  <span className="font-semibold text-sm sm:text-base" style={{ color: "#5A3A24" }}>
+   623→                    {member.name}
+   624→                  </span>
+   625→                  <span className="text-xs sm:text-sm font-medium" style={{ color: "#E8A23A" }}>
+   626→                    {member.post}
+   627→                  </span>
+   628→                  <a
+   629→                    href={`tel:${member.phone}`}
+   630→                    className="text-xs sm:text-sm text-muted-brown hover:text-elegant-orange transition-colors"
+   631→                  >
+   632→                    मो.नं. {member.phone}
+   633→                  </a>
+   634→                </div>
+   635→              ))}
+   636→            </div>
+   637→          </div>
+   638→
+   639→          {/* Footer Links */}
+   640→          <nav
+   641→            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-4"
+   642→            aria-label="फुटर नेविगेशन"
+   643→          >
+   644→            {FOOTER_LINKS.map((link, idx) => (
+   645→              <a
+   646→                key={link.href}
+   647→                href={link.href}
+   648→                className="text-xs sm:text-sm text-muted-brown hover:text-elegant-orange transition-colors"
+   649→              >
+   650→                {link.label}
+   651→                {idx < FOOTER_LINKS.length - 1 && (
+   652→                  <span className="hidden sm:inline text-light-beige ml-4">|</span>
+   653→                )}
+   654→              </a>
+   655→            ))}
+   656→          </nav>
+   657→
+   658→          <OrnamentalDivider />
+   659→
+   660→          <p className="text-xs text-muted-brown mt-2 text-center">
+   661→            © {new Date().getFullYear()} {TEMPLE_NAME} — जिला साहू संघ
+   662→            खैरागढ़-छुईखदान-गंडई
+   663→          </p>
+   664→        </div>
+   665→      </footer>
+   666→    </div>
+   667→  );
+   668→}
+   669→
