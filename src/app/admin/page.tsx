@@ -321,7 +321,7 @@ const S: Record<string, React.CSSProperties> = {
     fontSize: 15,
     outline: 'none',
     transition: 'border-color 0.2s',
-    boxSizing: 'border-box' as const,
+    boxSizing: 'border-box',
   },
   submitBtn: {
     width: '100%',

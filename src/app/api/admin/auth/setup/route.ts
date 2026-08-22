@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { hashPassword, createSession } from '@/lib/auth'
+import { hashPassword } from '@/lib/auth'
 import { db } from '@/lib/db'
 
 export async function POST(request: NextRequest) {
@@ -61,17 +61,19 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- Atomic: transaction guarantees only ONE first admin ----
-    const result = await db.$transaction(async (tx) => {
+    const passwordHash = await hashPassword(password)
+    const { generateSessionToken } = await import('@/lib/auth')
+    const token = generateSessionToken()
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+    const created = await db.$transaction(async (tx) => {
       // 1. Count admins inside the transaction (serialized isolation)
       const adminCount = await tx.admin.count()
       if (adminCount > 0) {
-        return { error: 'ALREADY_EXISTS' }
+        return null
       }
 
-      // 2. Hash password
-      const passwordHash = await hashPassword(password)
-
-      // 3. Create the SUPER_ADMIN
+      // 2. Create the SUPER_ADMIN
       const admin = await tx.admin.create({
         data: {
           name: name.trim(),
@@ -82,18 +84,15 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // 4. Create a session (still inside transaction)
-      const { generateSessionToken } = await import('@/lib/auth')
-      const token = generateSessionToken()
-      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      // 3. Create a session (still inside transaction)
       await tx.adminSession.create({
         data: { adminId: admin.id, token, expiresAt },
       })
 
-      return { admin, token }
+      return admin
     })
 
-    if (result.error === 'ALREADY_EXISTS') {
+    if (!created) {
       return NextResponse.json(
         { error: 'एडमिन खाता पहले से मौजूद है। कृपया लॉगिन करें।' },
         { status: 403 }
@@ -102,12 +101,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      token: result.token,
+      token,
       admin: {
-        id: result.admin.id,
-        name: result.admin.name,
-        email: result.admin.email,
-        role: result.admin.role,
+        id: created.id,
+        name: created.name,
+        email: created.email,
+        role: created.role,
       },
     })
   } catch (err: unknown) {
