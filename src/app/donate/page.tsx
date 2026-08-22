@@ -509,69 +509,74 @@ function StepPayment({
   const [orderError, setOrderError] = useState("");
   const [orderId, setOrderId] = useState<string | null>(existingOrderId || null);
   const [upiLink, setUpiLink] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const [confirming, setConfirming] = useState(false);
 
-  // Create order on mount (skip if already created)
+  // Create order & QR on mount (skip if already created)
   useEffect(() => {
-    if (existingOrderId) {
-      // Already have an order — rebuild UPI link from amount
-      const params = new URLSearchParams({
-        pa: 'sahubhagwat392@indianbk',
-        pn: 'कृष्णकुंज माँ कर्मा धाम',
-        am: String(amount),
-        cu: 'INR',
-        tn: `मंदिर निर्माण दान - ₹${amount}`,
-      });
-      setUpiLink(`upi://pay?${params.toString()}`);
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
 
-    async function createOrder() {
+    async function init() {
       try {
-        const res = await fetch("/api/donate/create-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount,
-            donorName: donorData.donorName.trim(),
-            mobile: donorData.mobile,
-            address: donorData.address.trim() || undefined,
-            city: donorData.city || undefined,
-            district: donorData.district || undefined,
-            state: donorData.state || undefined,
-          }),
-        });
+        let link = '';
 
-        const data = await res.json();
-
-        if (cancelled) return;
-
-        if (!data.success) {
-          setOrderError(data.error || "दान आदेश बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।");
-          setLoading(false);
-          return;
+        if (existingOrderId) {
+          const params = new URLSearchParams({
+            pa: 'sahubhagwat392@indianbk',
+            pn: 'कृष्णकुंज माँ कर्मा धाम',
+            am: String(amount),
+            cu: 'INR',
+            tn: `मंदिर निर्माण दान - ₹${amount}`,
+          });
+          link = `upi://pay?${params.toString()}`;
+          setUpiLink(link);
+        } else {
+          const res = await fetch('/api/donate/create-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount,
+              donorName: donorData.donorName.trim(),
+              mobile: donorData.mobile,
+              address: donorData.address.trim() || undefined,
+              city: donorData.city || undefined,
+              district: donorData.district || undefined,
+              state: donorData.state || undefined,
+            }),
+          });
+          const data = await res.json();
+          if (cancelled) return;
+          if (!data.success) {
+            setOrderError(data.error || 'दान आदेश बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+            setLoading(false);
+            return;
+          }
+          setOrderId(data.orderId);
+          link = data.upiLink;
+          setUpiLink(link);
         }
 
+        // Generate QR code with exact amount
+        const QRCode = await import('qrcode');
+        const qrUrl = await QRCode.toDataURL(link, {
+          width: 280,
+          margin: 2,
+          color: { dark: '#5A3A24', light: '#FFFFFF' },
+        });
         if (!cancelled) {
-          setOrderId(data.orderId);
-          setUpiLink(data.upiLink);
+          setQrDataUrl(qrUrl);
           setLoading(false);
         }
       } catch {
         if (!cancelled) {
-          setOrderError("भुगतान पृष्ठ लोड करने में त्रुटि हुई। कृपया पुनः प्रयास करें।");
+          setOrderError('भुगतान पृष्ठ लोड करने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
           setLoading(false);
         }
       }
     }
 
-    createOrder();
-    return () => {
-      cancelled = true;
-    };
+    init();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -661,18 +666,20 @@ function StepPayment({
           ₹{formatCurrency(amount)} का दान करें
         </p>
 
-        <div className="inline-block p-3 rounded-2xl border-2 border-light-gold bg-warm-white shadow-sm">
-          <img
-            src="/images/donation-qr.png"
-            alt="UPI QR कोड - दान करें"
-            width={240}
-            height={240}
-            className="w-52 h-52 sm:w-60 sm:h-60 mx-auto object-contain"
-          />
-        </div>
+        {qrDataUrl && (
+          <div className="inline-block p-3 rounded-2xl border-2 border-light-gold bg-warm-white shadow-sm">
+            <img
+              src={qrDataUrl}
+              alt={`UPI QR - ₹${formatCurrency(amount)} दान करें`}
+              width={240}
+              height={240}
+              className="w-52 h-52 sm:w-60 sm:h-60 mx-auto"
+            />
+          </div>
+        )}
 
         <p className="text-xs text-muted-brown mt-3 leading-relaxed">
-          किसी भी UPI ऐप (Google Pay, PhonePe, Paytm आदि) से स्कैन करें<br/>
+          किसी भी UPI ऐप से स्कैन करें — ₹{formatCurrency(amount)} ऑटो-भर जाएगा<br/>
           <span className="font-semibold text-deep-warm-brown">UPI ID: sahubhagwat392@indianbk</span>
         </p>
       </div>
