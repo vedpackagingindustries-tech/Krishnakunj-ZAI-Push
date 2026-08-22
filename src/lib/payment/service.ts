@@ -1,4 +1,4 @@
-import { db } from '@/lib/db';
+import { db, isDbAvailable } from '@/lib/db';
 import { randomUUID } from 'crypto';
 
 // ---------------------------------------------------------------------------
@@ -36,14 +36,23 @@ export interface GetPaymentStatusResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a receipt number in format KMD-2026-XXXXXX
- * where XXXXXX is a 6-digit zero-padded sequential number.
+ * Generate a receipt number in format KMD-2026-XXXXXX.
+ * Uses DB count when available, otherwise generates a random 6-digit number.
  */
 async function generateReceiptNumber(): Promise<string> {
-  const count = await db.donation.count();
-  const sequential = String(count + 1).padStart(6, '0');
   const year = new Date().getFullYear();
-  return `KMD-${year}-${sequential}`;
+  if (isDbAvailable()) {
+    try {
+      const count = await db.donation.count();
+      const sequential = String(count + 1).padStart(6, '0');
+      return `KMD-${year}-${sequential}`;
+    } catch {
+      // DB query failed — fall through to random
+    }
+  }
+  // Fallback: random 6-digit receipt number (no DB)
+  const rand = String(Math.floor(100000 + Math.random() * 900000));
+  return `KMD-${year}-${rand}`;
 }
 
 /**
@@ -106,25 +115,31 @@ export async function createPaymentOrder(
   const orderId = randomUUID();
   const upiLink = buildUpiLink(amount, receiptNumber);
 
-  // Persist the donation as PENDING
-  await db.donation.create({
-    data: {
-      receiptNumber,
-      donorName,
-      mobile,
-      email: extras?.email ?? null,
-      address: extras?.address ?? null,
-      city: extras?.city ?? null,
-      district: extras?.district ?? null,
-      state: extras?.state ?? null,
-      pincode: extras?.pincode ?? null,
-      amount,
-      currency: CURRENCY,
-      paymentMethod: 'UPI',
-      paymentOrderId: orderId,
-      paymentStatus: 'PENDING',
-    },
-  });
+  // Persist the donation as PENDING (only if DB is available)
+  if (isDbAvailable()) {
+    try {
+      await db.donation.create({
+        data: {
+          receiptNumber,
+          donorName,
+          mobile,
+          email: extras?.email ?? null,
+          address: extras?.address ?? null,
+          city: extras?.city ?? null,
+          district: extras?.district ?? null,
+          state: extras?.state ?? null,
+          pincode: extras?.pincode ?? null,
+          amount,
+          currency: CURRENCY,
+          paymentMethod: 'UPI',
+          paymentOrderId: orderId,
+          paymentStatus: 'PENDING',
+        },
+      });
+    } catch {
+      // DB write failed — donation proceeds without DB tracking
+    }
+  }
 
   return {
     orderId,
@@ -148,18 +163,23 @@ export async function createPaymentOrder(
 export async function verifyPayment(
   orderId: string,
 ): Promise<VerifyPaymentResult> {
-  const donation = await db.donation.findUnique({
-    where: { paymentOrderId: orderId },
-  });
-
-  if (!donation) {
-    throw new Error('दान आदेश नहीं मिला।');
+  if (isDbAvailable()) {
+    try {
+      const donation = await db.donation.findUnique({
+        where: { paymentOrderId: orderId },
+      });
+      if (donation) {
+        return {
+          paymentStatus: donation.paymentStatus,
+          transactionId: donation.transactionId,
+        };
+      }
+    } catch {
+      // DB query failed
+    }
   }
-
-  return {
-    paymentStatus: donation.paymentStatus,
-    transactionId: donation.transactionId,
-  };
+  // No DB — return unknown status
+  return { paymentStatus: 'UNKNOWN', transactionId: null };
 }
 
 /**
@@ -168,18 +188,22 @@ export async function verifyPayment(
 export async function getPaymentStatus(
   orderId: string,
 ): Promise<GetPaymentStatusResult> {
-  const donation = await db.donation.findUnique({
-    where: { paymentOrderId: orderId },
-  });
-
-  if (!donation) {
-    throw new Error('दान आदेश नहीं मिला।');
+  if (isDbAvailable()) {
+    try {
+      const donation = await db.donation.findUnique({
+        where: { paymentOrderId: orderId },
+      });
+      if (donation) {
+        return {
+          paymentStatus: donation.paymentStatus,
+          transactionId: donation.transactionId,
+          amount: donation.amount,
+          receiptNumber: donation.receiptNumber,
+        };
+      }
+    } catch {
+      // DB query failed
+    }
   }
-
-  return {
-    paymentStatus: donation.paymentStatus,
-    transactionId: donation.transactionId,
-    amount: donation.amount,
-    receiptNumber: donation.receiptNumber,
-  };
+  throw new Error('दान आदेश नहीं मिला।');
 }

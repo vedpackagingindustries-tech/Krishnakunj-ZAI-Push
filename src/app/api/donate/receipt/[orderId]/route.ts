@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { db, isDbAvailable } from '@/lib/db';
 
 // ---------------------------------------------------------------------------
 // GET /api/donate/receipt/[orderId]
@@ -14,6 +14,13 @@ export async function GET(
 ) {
   try {
     const { orderId } = await params;
+
+    if (!isDbAvailable()) {
+      return NextResponse.json(
+        { success: false, error: 'रसीद डेटाबेस उपलब्ध नहीं है।' },
+        { status: 503 },
+      );
+    }
 
     const donation = await db.donation.findUnique({
       where: { paymentOrderId: orderId },
