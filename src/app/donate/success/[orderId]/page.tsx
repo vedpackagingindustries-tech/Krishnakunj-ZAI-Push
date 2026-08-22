@@ -223,7 +223,12 @@ export default function DonationSuccessPage() {
         setError('network');
         return;
       }
-      const data: DonationRecord = await res.json();
+      const json = await res.json();
+      const data: DonationRecord = json.donation;
+      if (!data) {
+        setError('not_found');
+        return;
+      }
       if (data.paymentStatus !== 'SUCCESS') {
         setError('payment_failed');
         return;

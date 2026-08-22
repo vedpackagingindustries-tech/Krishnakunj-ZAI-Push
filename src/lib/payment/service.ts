@@ -5,7 +5,7 @@ import { randomUUID } from 'crypto';
 // Payment gateway configuration
 // ---------------------------------------------------------------------------
 
-const UPI_ID = process.env.PAYMENT_UPI_ID || 'temple@upi';
+const UPI_ID = process.env.PAYMENT_UPI_ID || 'sahubhagwat392@indianbk';
 const MERCHANT_NAME = 'कृष्णकुंज माँ कर्मा धाम';
 const CURRENCY = 'INR';
 

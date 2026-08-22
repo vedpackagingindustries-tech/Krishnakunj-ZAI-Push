@@ -525,23 +525,38 @@ function StepDetails({
 function StepPayment({
   amount,
   donorData,
+  existingOrderId,
   onBack,
   onSuccess,
 }: {
   amount: number;
   donorData: DonorData;
+  existingOrderId: string;
   onBack: () => void;
   onSuccess: (orderId: string) => void;
 }) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!existingOrderId);
   const [orderError, setOrderError] = useState("");
-  const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(existingOrderId || null);
   const [upiLink, setUpiLink] = useState("");
-  const [qrDataUrl, setQrDataUrl] = useState("");
   const [confirming, setConfirming] = useState(false);
 
-  // Create order on mount
+  // Create order on mount (skip if already created)
   useEffect(() => {
+    if (existingOrderId) {
+      // Already have an order — rebuild UPI link from amount
+      const params = new URLSearchParams({
+        pa: 'sahubhagwat392@indianbk',
+        pn: 'कृष्णकुंज माँ कर्मा धाम',
+        am: String(amount),
+        cu: 'INR',
+        tn: `मंदिर निर्माण दान - ₹${amount}`,
+      });
+      setUpiLink(`upi://pay?${params.toString()}`);
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     async function createOrder() {
@@ -572,22 +587,9 @@ function StepPayment({
           return;
         }
 
-        setOrderId(data.orderId);
-        setUpiLink(data.upiLink);
-
-        // Generate QR code
-        const QRCode = await import("qrcode");
-        const url = await QRCode.toDataURL(data.upiLink, {
-          width: 280,
-          margin: 2,
-          color: {
-            dark: "#5A3A24",
-            light: "#FFFFFF",
-          },
-        });
-
         if (!cancelled) {
-          setQrDataUrl(url);
+          setOrderId(data.orderId);
+          setUpiLink(data.upiLink);
           setLoading(false);
         }
       } catch {
@@ -602,7 +604,8 @@ function StepPayment({
     return () => {
       cancelled = true;
     };
-  }, [amount, donorData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleConfirmPayment = async () => {
     if (!orderId) return;
@@ -683,24 +686,26 @@ function StepPayment({
 
       {/* QR Code Card */}
       <div className="rounded-2xl border-2 border-light-gold bg-warm-white p-5 sm:p-6 text-center">
-        <p className="text-base sm:text-lg font-semibold text-deep-warm-brown mb-4">
-          स्कैन करके ₹{formatCurrency(amount)} का दान करें
+        <p className="text-base sm:text-lg font-semibold text-deep-warm-brown mb-1">
+          UPI QR कोड स्कैन करें
+        </p>
+        <p className="text-sm text-elegant-orange font-semibold mb-4">
+          ₹{formatCurrency(amount)} का दान करें
         </p>
 
-        {qrDataUrl && (
-          <div className="inline-block p-3 rounded-2xl border-2 border-light-gold bg-warm-white shadow-sm">
-            <img
-              src={qrDataUrl}
-              alt={`UPI QR कोड - ₹${formatCurrency(amount)} दान करें`}
-              width={240}
-              height={240}
-              className="w-48 h-48 sm:w-56 sm:h-56 mx-auto"
-            />
-          </div>
-        )}
+        <div className="inline-block p-3 rounded-2xl border-2 border-light-gold bg-warm-white shadow-sm">
+          <img
+            src="/images/donation-qr.png"
+            alt="UPI QR कोड - दान करें"
+            width={240}
+            height={240}
+            className="w-52 h-52 sm:w-60 sm:h-60 mx-auto object-contain"
+          />
+        </div>
 
         <p className="text-xs text-muted-brown mt-3 leading-relaxed">
-          किसी भी UPI ऐप (Google Pay, PhonePe, Paytm आदि) से स्कैन करें
+          किसी भी UPI ऐप (Google Pay, PhonePe, Paytm आदि) से स्कैन करें<br/>
+          <span className="font-semibold text-deep-warm-brown">UPI ID: sahubhagwat392@indianbk</span>
         </p>
       </div>
 
@@ -826,6 +831,7 @@ export default function DonatePage() {
         <StepPayment
           amount={amount}
           donorData={donorData}
+          existingOrderId={orderId}
           onBack={() => setStep(2)}
           onSuccess={(id) => {
             setOrderId(id);

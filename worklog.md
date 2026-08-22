@@ -56,3 +56,30 @@ Stage Summary:
   - `/home/z/my-project/src/app/api/donate/confirm-payment/route.ts`
   - `/home/z/my-project/src/app/api/donate/receipt/[orderId]/route.ts`
   - `/home/z/my-project/src/app/api/donate/mark-success/route.ts`
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Integrate user's QR code and UPI ID, fix critical bugs in donation flow
+
+Work Log:
+- Copied user's uploaded QR code (`upload/qr.png`) to `public/images/donation-qr.png`
+- Updated UPI ID in payment service from `temple@upi` to `sahubhagwat392@indianbk`
+- Fixed critical bug: Success page was reading receipt API response directly as DonationRecord instead of extracting `json.donation` — caused payment_failed error on every success
+- Replaced dynamically generated QR code (qrcode library) with user's actual bank QR code image on payment page
+- Added UPI ID display text below QR code for donor reference
+- Fixed duplicate order creation on back/forward navigation: StepPayment now accepts `existingOrderId` prop, skips API call if order already exists
+- Fixed useEffect dependency array to prevent re-creating orders on donorData reference changes
+- Ran `prisma generate` and `prisma db push` — schema already in sync
+- Verified full production build compiles with zero errors — all 9 routes registered
+
+Stage Summary:
+- User's QR code (sahubhagwat392@indianbk) now displayed on payment page
+- No more duplicate orders when navigating back/forward in donation flow
+- Receipt/success page now correctly loads donation data
+- All API routes: create-order, verify-payment, confirm-payment, mark-success, receipt/[orderId]
+- Files modified:
+  - `/home/z/my-project/src/lib/payment/service.ts` (UPI ID update)
+  - `/home/z/my-project/src/app/donate/page.tsx` (QR image, idempotency)
+  - `/home/z/my-project/src/app/donate/success/[orderId]/page.tsx` (receipt data fix)
+  - `/home/z/my-project/public/images/donation-qr.png` (user's QR code)
