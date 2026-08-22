@@ -12,6 +12,7 @@ import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
 interface DonorData {
   donorName: string;
   mobile: string;
+  address: string;
   city: string;
   district: string;
   state: string;
@@ -20,6 +21,7 @@ interface DonorData {
 interface FieldErrors {
   donorName?: string;
   mobile?: string;
+  address?: string;
   consent?: string;
 }
 
@@ -28,6 +30,7 @@ const PRESET_AMOUNTS = [100, 501, 1001, 2001, 5001, 11001];
 const INITIAL_DONOR: DonorData = {
   donorName: "",
   mobile: "",
+  address: "",
   city: "",
   district: "",
   state: "",
@@ -284,7 +287,7 @@ function StepDetails({
   const updateField = (field: keyof DonorData, value: string) => {
     setDonorData((prev) => ({ ...prev, [field]: value }));
     // Clear field error on change
-    if (field === "donorName" || field === "mobile") {
+    if (field === "donorName" || field === "mobile" || field === "address") {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
@@ -296,6 +299,10 @@ function StepDetails({
 
     const mobileErr = validateMobile(donorData.mobile);
     if (mobileErr) newErrors.mobile = mobileErr;
+
+    if (!donorData.address.trim()) {
+      newErrors.address = "कृपया अपना पता दर्ज करें।";
+    }
 
     if (!consent) {
       newErrors.consent = "कृपया ऊपर दिए गए कथन पर सहमति दें।";
@@ -366,6 +373,22 @@ function StepDetails({
             className={`${inputClass} ${errors.mobile ? "border-deep-maroon" : ""}`}
           />
           {errors.mobile && <p className={errorClass}>{errors.mobile}</p>}
+        </div>
+
+        {/* Address — Required */}
+        <div>
+          <label htmlFor="address" className={labelClass}>
+            पता{requiredMark}
+          </label>
+          <input
+            id="address"
+            type="text"
+            placeholder="मकान नंबर, गली / मोहल्ला"
+            value={donorData.address}
+            onChange={(e) => updateField("address", e.target.value)}
+            className={`${inputClass} ${errors.address ? "border-deep-maroon" : ""}`}
+          />
+          {errors.address && <p className={errorClass}>{errors.address}</p>}
         </div>
 
         {/* Optional Fields */}
@@ -515,6 +538,7 @@ function StepPayment({
             amount,
             donorName: donorData.donorName.trim(),
             mobile: donorData.mobile,
+            address: donorData.address.trim() || undefined,
             city: donorData.city || undefined,
             district: donorData.district || undefined,
             state: donorData.state || undefined,
