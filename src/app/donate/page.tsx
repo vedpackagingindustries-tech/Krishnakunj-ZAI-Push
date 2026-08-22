@@ -12,7 +12,6 @@ import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
 interface DonorData {
   donorName: string;
   mobile: string;
-  address: string;
   city: string;
   district: string;
   state: string;
@@ -29,7 +28,6 @@ const PRESET_AMOUNTS = [100, 501, 1001, 2001, 5001, 11001];
 const INITIAL_DONOR: DonorData = {
   donorName: "",
   mobile: "",
-  address: "",
   city: "",
   district: "",
   state: "",
@@ -371,20 +369,6 @@ function StepDetails({
         </div>
 
         {/* Optional Fields */}
-        <div>
-          <label htmlFor="address" className={labelClass}>
-            पता
-          </label>
-          <input
-            id="address"
-            type="text"
-            placeholder="मकान नंबर, गली / मोहल्ला"
-            value={donorData.address}
-            onChange={(e) => updateField("address", e.target.value)}
-            className={inputClass}
-          />
-        </div>
-
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="city" className={labelClass}>
@@ -531,7 +515,6 @@ function StepPayment({
             amount,
             donorName: donorData.donorName.trim(),
             mobile: donorData.mobile,
-            address: donorData.address || undefined,
             city: donorData.city || undefined,
             district: donorData.district || undefined,
             state: donorData.state || undefined,
