@@ -1,0 +1,707 @@
+     1→'use client'
+     2→
+     3→import { useEffect, useState, useCallback } from 'react'
+     4→import { fetchAdmin, getAdminToken } from '@/lib/admin-auth'
+     5→import { Card, CardContent } from '@/components/ui/card'
+     6→import { Button } from '@/components/ui/button'
+     7→import { Input } from '@/components/ui/input'
+     8→import { Skeleton } from '@/components/ui/skeleton'
+     9→import {
+    10→  Table,
+    11→  TableBody,
+    12→  TableCell,
+    13→  TableHead,
+    14→  TableHeader,
+    15→  TableRow,
+    16→} from '@/components/ui/table'
+    17→import {
+    18→  Select,
+    19→  SelectContent,
+    20→  SelectItem,
+    21→  SelectTrigger,
+    22→  SelectValue,
+    23→} from '@/components/ui/select'
+    24→import {
+    25→  Dialog,
+    26→  DialogContent,
+    27→  DialogHeader,
+    28→  DialogTitle,
+    29→  DialogDescription,
+    30→} from '@/components/ui/dialog'
+    31→import { Search, Download, Eye, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react'
+    32→
+    33→// ── Types ───────────────────────────────────────────
+    34→
+    35→interface Donation {
+    36→  id: string
+    37→  receiptNumber: string
+    38→  donorName: string
+    39→  mobile: string
+    40→  email: string | null
+    41→  address: string | null
+    42→  city: string | null
+    43→  district: string | null
+    44→  state: string | null
+    45→  pincode: string | null
+    46→  amount: number
+    47→  currency: string
+    48→  paymentMethod: string | null
+    49→  paymentOrderId: string | null
+    50→  transactionId: string | null
+    51→  paymentStatus: string
+    52→  createdAt: string
+    53→  paidAt: string | null
+    54→  receiptGeneratedAt: string | null
+    55→}
+    56→
+    57→interface DonationsResponse {
+    58→  donations: Donation[]
+    59→  total: number
+    60→  page: number
+    61→  limit: number
+    62→  totalPages: number
+    63→}
+    64→
+    65→// ── Helpers ─────────────────────────────────────────
+    66→
+    67→function formatCurrency(n: number): string {
+    68→  return '₹' + n.toLocaleString('en-IN')
+    69→}
+    70→
+    71→function formatDate(iso: string): string {
+    72→  return new Date(iso).toLocaleDateString('hi-IN', {
+    73→    day: '2-digit',
+    74→    month: 'short',
+    75→    year: 'numeric',
+    76→  })
+    77→}
+    78→
+    79→function getStatusBadge(status: string) {
+    80→  switch (status) {
+    81→    case 'SUCCESS':
+    82→      return (
+    83→        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+    84→          सफल
+    85→        </span>
+    86→      )
+    87→    case 'PENDING':
+    88→      return (
+    89→        <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+    90→          PENDING
+    91→        </span>
+    92→      )
+    93→    case 'FAILED':
+    94→      return (
+    95→        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+    96→          FAILED
+    97→        </span>
+    98→      )
+    99→    case 'CANCELLED':
+   100→      return (
+   101→        <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
+   102→          CANCELLED
+   103→        </span>
+   104→      )
+   105→    default:
+   106→      return (
+   107→        <span className="inline-flex items-center rounded-full bg-light-beige px-2.5 py-0.5 text-xs font-medium text-muted-brown">
+   108→          {status}
+   109→        </span>
+   110→      )
+   111→  }
+   112→}
+   113→
+   114→// ── Loading Skeleton ────────────────────────────────
+   115→
+   116→function TableSkeleton() {
+   117→  return (
+   118→    <div className="space-y-3">
+   119→      <div className="flex gap-3">
+   120→        {Array.from({ length: 4 }).map((_, i) => (
+   121→          <Skeleton key={i} className="h-8 w-full" />
+   122→        ))}
+   123→      </div>
+   124→      {Array.from({ length: 5 }).map((_, i) => (
+   125→        <div key={i} className="flex gap-3">
+   126→          <Skeleton className="h-12 w-full" />
+   127→        </div>
+   128→      ))}
+   129→    </div>
+   130→  )
+   131→}
+   132→
+   133→function MobileCardSkeleton() {
+   134→  return (
+   135→    <div className="space-y-3">
+   136→      {Array.from({ length: 5 }).map((_, i) => (
+   137→        <Card key={i} className="border-light-beige">
+   138→          <CardContent className="p-4 space-y-3">
+   139→            <Skeleton className="h-5 w-3/4" />
+   140→            <Skeleton className="h-4 w-1/2" />
+   141→            <Skeleton className="h-4 w-full" />
+   142→            <Skeleton className="h-8 w-1/3" />
+   143→          </CardContent>
+   144→        </Card>
+   145→      ))}
+   146→    </div>
+   147→  )
+   148→}
+   149→
+   150→// ── Detail Dialog ───────────────────────────────────
+   151→
+   152→function DonationDetailDialog({
+   153→  donation,
+   154→  open,
+   155→  onOpenChange,
+   156→}: {
+   157→  donation: Donation | null
+   158→  open: boolean
+   159→  onOpenChange: (open: boolean) => void
+   160→}) {
+   161→  if (!donation) return null
+   162→
+   163→  const details = [
+   164→    { label: 'पावती क्रमांक', value: donation.receiptNumber },
+   165→    { label: 'दानदाता', value: donation.donorName },
+   166→    { label: 'मोबाइल', value: donation.mobile },
+   167→    { label: 'ईमेल', value: donation.email || '—' },
+   168→    { label: 'पता', value: [donation.address, donation.city, donation.district, donation.state, donation.pincode].filter(Boolean).join(', ') || '—' },
+   169→    { label: 'राशि', value: formatCurrency(donation.amount) },
+   170→    { label: 'भुगतान माध्यम', value: donation.paymentMethod || '—' },
+   171→    { label: 'Transaction ID', value: donation.transactionId || '—' },
+   172→    { label: 'स्थिति', value: donation.paymentStatus, badge: true },
+   173→    { label: 'निर्माण तिथि', value: formatDate(donation.createdAt) },
+   174→    { label: 'भुगतान तिथि', value: donation.paidAt ? formatDate(donation.paidAt) : '—' },
+   175→  ]
+   176→
+   177→  return (
+   178→    <Dialog open={open} onOpenChange={onOpenChange}>
+   179→      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+   180→        <DialogHeader>
+   181→          <DialogTitle className="text-deep-warm-brown">
+   182→            दान विवरण
+   183→          </DialogTitle>
+   184→          <DialogDescription className="text-muted-brown">
+   185→            पावती क्रमांक: {donation.receiptNumber}
+   186→          </DialogDescription>
+   187→        </DialogHeader>
+   188→        <div className="space-y-3 mt-2">
+   189→          {details.map((item) => (
+   190→            <div
+   191→              key={item.label}
+   192→              className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 border-b border-light-beige/50 pb-2 last:border-0 last:pb-0"
+   193→            >
+   194→              <span className="text-xs font-medium text-muted-brown shrink-0 sm:w-32">
+   195→                {item.label}
+   196→              </span>
+   197→              <span className="text-sm text-deep-warm-brown font-medium">
+   198→                {item.badge ? getStatusBadge(item.value) : item.value}
+   199→              </span>
+   200→            </div>
+   201→          ))}
+   202→        </div>
+   203→      </DialogContent>
+   204→    </Dialog>
+   205→  )
+   206→}
+   207→
+   208→// ── Main Page ───────────────────────────────────────
+   209→
+   210→export default function DonationsPage() {
+   211→  // State
+   212→  const [donations, setDonations] = useState<Donation[]>([])
+   213→  const [total, setTotal] = useState(0)
+   214→  const [page, setPage] = useState(1)
+   215→  const [totalPages, setTotalPages] = useState(0)
+   216→  const [loading, setLoading] = useState(true)
+   217→  const [search, setSearch] = useState('')
+   218→  const [searchInput, setSearchInput] = useState('')
+   219→  const [status, setStatus] = useState('')
+   220→  const [dateFrom, setDateFrom] = useState('')
+   221→  const [dateTo, setDateTo] = useState('')
+   222→  const [amountMin, setAmountMin] = useState('')
+   223→  const [amountMax, setAmountMax] = useState('')
+   224→  const [sortBy, setSortBy] = useState('createdAt')
+   225→  const [sortOrder, setSortOrder] = useState('desc')
+   226→  const [showFilters, setShowFilters] = useState(false)
+   227→  const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null)
+   228→  const [detailOpen, setDetailOpen] = useState(false)
+   229→
+   230→  const limit = 20
+   231→
+   232→  // ── Fetch donations ──
+   233→  const fetchDonations = useCallback(async () => {
+   234→    setLoading(true)
+   235→    try {
+   236→      const params = new URLSearchParams()
+   237→      params.set('page', String(page))
+   238→      params.set('limit', String(limit))
+   239→      if (search) params.set('search', search)
+   240→      if (status) params.set('status', status)
+   241→      if (dateFrom) params.set('dateFrom', dateFrom)
+   242→      if (dateTo) params.set('dateTo', dateTo)
+   243→      if (amountMin) params.set('amountMin', amountMin)
+   244→      if (amountMax) params.set('amountMax', amountMax)
+   245→      if (sortBy) params.set('sortBy', sortBy)
+   246→      if (sortOrder) params.set('sortOrder', sortOrder)
+   247→
+   248→      const data = await fetchAdmin<DonationsResponse>(
+   249→        `/api/admin/donations?${params.toString()}`
+   250→      )
+   251→      setDonations(data.donations)
+   252→      setTotal(data.total)
+   253→      setTotalPages(data.totalPages)
+   254→    } catch {
+   255→      // handled by fetchAdmin
+   256→    } finally {
+   257→      setLoading(false)
+   258→    }
+   259→  }, [page, search, status, dateFrom, dateTo, amountMin, amountMax, sortBy, sortOrder])
+   260→
+   261→  useEffect(() => {
+   262→    fetchDonations()
+   263→  }, [fetchDonations])
+   264→
+   265→  // ── Search handler (debounced via button) ──
+   266→  const handleSearch = () => {
+   267→    setSearch(searchInput)
+   268→    setPage(1)
+   269→  }
+   270→
+   271→  const handleClearSearch = () => {
+   272→    setSearchInput('')
+   273→    setSearch('')
+   274→    setPage(1)
+   275→  }
+   276→
+   277→  // ── Status change ──
+   278→  const handleStatusChange = (val: string) => {
+   279→    setStatus(val === 'all' ? '' : val)
+   280→    setPage(1)
+   281→  }
+   282→
+   283→  // ── Export (blob download with auth header) ──
+   284→  const handleExport = async (format: 'csv' | 'excel') => {
+   285→    const params = new URLSearchParams()
+   286→    params.set('format', format)
+   287→    if (search) params.set('search', search)
+   288→    if (status) params.set('status', status)
+   289→    if (dateFrom) params.set('dateFrom', dateFrom)
+   290→    if (dateTo) params.set('dateTo', dateTo)
+   291→    if (amountMin) params.set('amountMin', amountMin)
+   292→    if (amountMax) params.set('amountMax', amountMax)
+   293→    if (sortBy) params.set('sortBy', sortBy)
+   294→    if (sortOrder) params.set('sortOrder', sortOrder)
+   295→
+   296→    try {
+   297→      const token = getAdminToken()
+   298→      if (!token) return
+   299→      const res = await fetch(`/api/admin/donations/export?${params.toString()}`, {
+   300→        headers: { Authorization: `Bearer ${token}` },
+   301→      })
+   302→      if (!res.ok) throw new Error()
+   303→      const blob = await res.blob()
+   304→      const ext = format === 'excel' ? 'xlsx' : 'csv'
+   305→      const url = URL.createObjectURL(blob)
+   306→      const a = document.createElement('a')
+   307→      a.href = url
+   308→      a.download = `donations_${new Date().toISOString().slice(0, 10)}.${ext}`
+   309→      document.body.appendChild(a)
+   310→      a.click()
+   311→      a.remove()
+   312→      URL.revokeObjectURL(url)
+   313→    } catch {
+   314→      // handled silently
+   315→    }
+   316→  }
+   317→
+   318→  // ── View detail ──
+   319→  const handleView = (donation: Donation) => {
+   320→    setSelectedDonation(donation)
+   321→    setDetailOpen(true)
+   322→  }
+   323→
+   324→  // ── Pagination ──
+   325→  const goToPage = (p: number) => {
+   326→    if (p >= 1 && p <= totalPages) setPage(p)
+   327→  }
+   328→
+   329→  // ── Active filter count ──
+   330→  const activeFilterCount = [search, status, dateFrom, dateTo, amountMin, amountMax].filter(Boolean).length
+   331→
+   332→  return (
+   333→    <div className="space-y-4">
+   334→      {/* Title */}
+   335→      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+   336→        <div>
+   337→          <h2 className="text-2xl font-bold text-deep-warm-brown">
+   338→            दान प्रबंधन
+   339→          </h2>
+   340→          <p className="text-sm text-muted-brown mt-0.5">
+   341→            कुल {total.toLocaleString('en-IN')} दान
+   342→          </p>
+   343→        </div>
+   344→        <div className="flex gap-2">
+   345→          <Button
+   346→            variant="outline"
+   347→            size="sm"
+   348→            className="border-light-beige text-deep-warm-brown hover:bg-light-beige"
+   349→            onClick={() => handleExport('csv')}
+   350→          >
+   351→            <Download className="h-4 w-4 mr-1" />
+   352→            CSV
+   353→          </Button>
+   354→          <Button
+   355→            variant="outline"
+   356→            size="sm"
+   357→            className="border-light-beige text-deep-warm-brown hover:bg-light-beige"
+   358→            onClick={() => handleExport('excel')}
+   359→          >
+   360→            <Download className="h-4 w-4 mr-1" />
+   361→            Excel
+   362→          </Button>
+   363→        </div>
+   364→      </div>
+   365→
+   366→      {/* Search Bar */}
+   367→      <Card className="border-light-beige shadow-sm">
+   368→        <CardContent className="p-3 lg:p-4">
+   369→          <div className="flex flex-col gap-3">
+   370→            {/* Search + status row */}
+   371→            <div className="flex flex-col sm:flex-row gap-2">
+   372→              <div className="relative flex-1">
+   373→                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-brown" />
+   374→                <Input
+   375→                  placeholder="नाम / मोबाइल / पावती खोजें..."
+   376→                  value={searchInput}
+   377→                  onChange={(e) => setSearchInput(e.target.value)}
+   378→                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+   379→                  className="pl-9 border-light-beige text-deep-warm-brown placeholder:text-muted-brown"
+   380→                />
+   381→              </div>
+   382→              <Select value={status || 'all'} onValueChange={handleStatusChange}>
+   383→                <SelectTrigger className="w-full sm:w-40 border-light-beige text-deep-warm-brown">
+   384→                  <SelectValue />
+   385→                </SelectTrigger>
+   386→                <SelectContent>
+   387→                  <SelectItem value="all">सभी</SelectItem>
+   388→                  <SelectItem value="SUCCESS">सफल</SelectItem>
+   389→                  <SelectItem value="PENDING">PENDING</SelectItem>
+   390→                  <SelectItem value="FAILED">FAILED</SelectItem>
+   391→                  <SelectItem value="CANCELLED">CANCELLED</SelectItem>
+   392→                </SelectContent>
+   393→              </Select>
+   394→              <div className="flex gap-1">
+   395→                <Button
+   396→                  variant={showFilters ? 'default' : 'outline'}
+   397→                  size="sm"
+   398→                  className={
+   399→                    showFilters
+   400→                      ? 'bg-elegant-orange hover:bg-elegant-orange/90 text-warm-white border-elegant-orange'
+   401→                      : 'border-light-beige text-deep-warm-brown hover:bg-light-beige'
+   402→                  }
+   403→                  onClick={() => setShowFilters(!showFilters)}
+   404→                >
+   405→                  <Filter className="h-4 w-4 mr-1" />
+   406→                  <span className="hidden sm:inline">फ़िल्टर</span>
+   407→                  {activeFilterCount > 0 && (
+   408→                    <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-soft-saffron text-[10px] font-bold text-warm-white">
+   409→                      {activeFilterCount}
+   410→                    </span>
+   411→                  )}
+   412→                </Button>
+   413→                <Button
+   414→                  variant="outline"
+   415→                  size="sm"
+   416→                  className="border-light-beige text-deep-warm-brown hover:bg-light-beige"
+   417→                  onClick={handleSearch}
+   418→                >
+   419→                  खोजें
+   420→                </Button>
+   421→              </div>
+   422→            </div>
+   423→
+   424→            {/* Advanced filters */}
+   425→            {showFilters && (
+   426→              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-light-beige/50">
+   427→                <div>
+   428→                  <label className="text-xs text-muted-brown mb-1 block">तारीख से</label>
+   429→                  <Input
+   430→                    type="date"
+   431→                    value={dateFrom}
+   432→                    onChange={(e) => { setDateFrom(e.target.value); setPage(1) }}
+   433→                    className="border-light-beige text-deep-warm-brown text-sm"
+   434→                  />
+   435→                </div>
+   436→                <div>
+   437→                  <label className="text-xs text-muted-brown mb-1 block">तारीख तक</label>
+   438→                  <Input
+   439→                    type="date"
+   440→                    value={dateTo}
+   441→                    onChange={(e) => { setDateTo(e.target.value); setPage(1) }}
+   442→                    className="border-light-beige text-deep-warm-brown text-sm"
+   443→                  />
+   444→                </div>
+   445→                <div>
+   446→                  <label className="text-xs text-muted-brown mb-1 block">न्यूनतम राशि</label>
+   447→                  <Input
+   448→                    type="number"
+   449→                    placeholder="₹"
+   450→                    value={amountMin}
+   451→                    onChange={(e) => { setAmountMin(e.target.value); setPage(1) }}
+   452→                    className="border-light-beige text-deep-warm-brown text-sm"
+   453→                  />
+   454→                </div>
+   455→                <div>
+   456→                  <label className="text-xs text-muted-brown mb-1 block">अधिकतम राशि</label>
+   457→                  <Input
+   458→                    type="number"
+   459→                    placeholder="₹"
+   460→                    value={amountMax}
+   461→                    onChange={(e) => { setAmountMax(e.target.value); setPage(1) }}
+   462→                    className="border-light-beige text-deep-warm-brown text-sm"
+   463→                  />
+   464→                </div>
+   465→                <div>
+   466→                  <label className="text-xs text-muted-brown mb-1 block">क्रमबद्ध</label>
+   467→                  <Select value={sortBy} onValueChange={setSortBy}>
+   468→                    <SelectTrigger className="border-light-beige text-deep-warm-brown text-sm">
+   469→                      <SelectValue />
+   470→                    </SelectTrigger>
+   471→                    <SelectContent>
+   472→                      <SelectItem value="createdAt">तारीख</SelectItem>
+   473→                      <SelectItem value="amount">राशि</SelectItem>
+   474→                    </SelectContent>
+   475→                  </Select>
+   476→                </div>
+   477→                <div>
+   478→                  <label className="text-xs text-muted-brown mb-1 block">क्रम</label>
+   479→                  <Select value={sortOrder} onValueChange={setSortOrder}>
+   480→                    <SelectTrigger className="border-light-beige text-deep-warm-brown text-sm">
+   481→                      <SelectValue />
+   482→                    </SelectTrigger>
+   483→                    <SelectContent>
+   484→                      <SelectItem value="desc">नवीनतम</SelectItem>
+   485→                      <SelectItem value="asc">पुराना</SelectItem>
+   486→                    </SelectContent>
+   487→                  </Select>
+   488→                </div>
+   489→                <div className="col-span-2 flex items-end">
+   490→                  <Button
+   491→                    variant="outline"
+   492→                    size="sm"
+   493→                    className="border-light-beige text-muted-brown hover:bg-light-beige"
+   494→                    onClick={() => {
+   495→                      setSearchInput('')
+   496→                      setSearch('')
+   497→                      setStatus('')
+   498→                      setDateFrom('')
+   499→                      setDateTo('')
+   500→                      setAmountMin('')
+   501→                      setAmountMax('')
+   502→                      setSortBy('createdAt')
+   503→                      setSortOrder('desc')
+   504→                      setPage(1)
+   505→                    }}
+   506→                  >
+   507→                    <X className="h-3.5 w-3.5 mr-1" />
+   508→                    सभी फ़िल्टर हटाएं
+   509→                  </Button>
+   510→                </div>
+   511→              </div>
+   512→            )}
+   513→          </div>
+   514→        </CardContent>
+   515→      </Card>
+   516→
+   517→      {/* Desktop Table */}
+   518→      <div className="hidden md:block">
+   519→        <Card className="border-light-beige shadow-sm">
+   520→          <CardContent className="p-0">
+   521→            {loading ? (
+   522→              <div className="p-4">
+   523→                <TableSkeleton />
+   524→              </div>
+   525→            ) : (
+   526→              <Table>
+   527→                <TableHeader>
+   528→                  <TableRow className="border-light-beige bg-light-beige/50 hover:bg-light-beige/50">
+   529→                    <TableHead className="text-muted-brown font-medium">पावती क्रमांक</TableHead>
+   530→                    <TableHead className="text-muted-brown font-medium">दानदाता</TableHead>
+   531→                    <TableHead className="text-muted-brown font-medium">मोबाइल</TableHead>
+   532→                    <TableHead className="text-muted-brown font-medium">राशि</TableHead>
+   533→                    <TableHead className="text-muted-brown font-medium">भुगतान माध्यम</TableHead>
+   534→                    <TableHead className="text-muted-brown font-medium">Transaction ID</TableHead>
+   535→                    <TableHead className="text-muted-brown font-medium">तारीख</TableHead>
+   536→                    <TableHead className="text-muted-brown font-medium">स्थिति</TableHead>
+   537→                    <TableHead className="text-muted-brown font-medium">कार्य</TableHead>
+   538→                  </TableRow>
+   539→                </TableHeader>
+   540→                <TableBody>
+   541→                  {donations.length > 0 ? (
+   542→                    donations.map((d) => (
+   543→                      <TableRow
+   544→                        key={d.id}
+   545→                        className="border-light-beige/50 hover:bg-light-beige/30"
+   546→                      >
+   547→                        <TableCell className="font-mono text-xs text-deep-warm-brown">
+   548→                          {d.receiptNumber}
+   549→                        </TableCell>
+   550→                        <TableCell className="font-medium text-deep-warm-brown">
+   551→                          {d.donorName}
+   552→                        </TableCell>
+   553→                        <TableCell className="text-muted-brown">
+   554→                          {d.mobile}
+   555→                        </TableCell>
+   556→                        <TableCell className="font-medium text-deep-warm-brown">
+   557→                          {formatCurrency(d.amount)}
+   558→                        </TableCell>
+   559→                        <TableCell className="text-muted-brown">
+   560→                          {d.paymentMethod || '—'}
+   561→                        </TableCell>
+   562→                        <TableCell className="font-mono text-xs text-muted-brown">
+   563→                          {d.transactionId || '—'}
+   564→                        </TableCell>
+   565→                        <TableCell className="text-muted-brown">
+   566→                          {formatDate(d.createdAt)}
+   567→                        </TableCell>
+   568→                        <TableCell>{getStatusBadge(d.paymentStatus)}</TableCell>
+   569→                        <TableCell>
+   570→                          <Button
+   571→                            variant="ghost"
+   572→                            size="sm"
+   573→                            className="text-elegant-orange hover:text-elegant-orange/80 hover:bg-elegant-orange/10"
+   574→                            onClick={() => handleView(d)}
+   575→                          >
+   576→                            <Eye className="h-4 w-4" />
+   577→                          </Button>
+   578→                        </TableCell>
+   579→                      </TableRow>
+   580→                    ))
+   581→                  ) : (
+   582→                    <TableRow>
+   583→                      <TableCell colSpan={9} className="h-24 text-center text-muted-brown">
+   584→                        कोई दान नहीं मिला।
+   585→                      </TableCell>
+   586→                    </TableRow>
+   587→                  )}
+   588→                </TableBody>
+   589→              </Table>
+   590→            )}
+   591→          </CardContent>
+   592→        </Card>
+   593→      </div>
+   594→
+   595→      {/* Mobile Cards */}
+   596→      <div className="md:hidden">
+   597→        {loading ? (
+   598→          <MobileCardSkeleton />
+   599→        ) : donations.length > 0 ? (
+   600→          <div className="space-y-3">
+   601→            {donations.map((d) => (
+   602→              <Card key={d.id} className="border-light-beige shadow-sm">
+   603→                <CardContent className="p-4">
+   604→                  <div className="flex items-start justify-between mb-2">
+   605→                    <div className="min-w-0">
+   606→                      <p className="font-medium text-deep-warm-brown truncate">
+   607→                        {d.donorName}
+   608→                      </p>
+   609→                      <p className="text-xs text-muted-brown font-mono">
+   610→                        {d.receiptNumber}
+   611→                      </p>
+   612→                    </div>
+   613→                    {getStatusBadge(d.paymentStatus)}
+   614→                  </div>
+   615→
+   616→                  <div className="text-lg font-bold text-elegant-orange mb-2">
+   617→                    {formatCurrency(d.amount)}
+   618→                  </div>
+   619→
+   620→                  <div className="space-y-1 text-sm">
+   621→                    <div className="flex justify-between">
+   622→                      <span className="text-muted-brown">मोबाइल</span>
+   623→                      <span className="text-deep-warm-brown">{d.mobile}</span>
+   624→                    </div>
+   625→                    <div className="flex justify-between">
+   626→                      <span className="text-muted-brown">भुगतान</span>
+   627→                      <span className="text-deep-warm-brown">{d.paymentMethod || '—'}</span>
+   628→                    </div>
+   629→                    <div className="flex justify-between">
+   630→                      <span className="text-muted-brown">तारीख</span>
+   631→                      <span className="text-deep-warm-brown">{formatDate(d.createdAt)}</span>
+   632→                    </div>
+   633→                    {d.transactionId && (
+   634→                      <div className="flex justify-between">
+   635→                        <span className="text-muted-brown">Txn ID</span>
+   636→                        <span className="text-deep-warm-brown font-mono text-xs truncate ml-2">
+   637→                          {d.transactionId}
+   638→                        </span>
+   639→                      </div>
+   640→                    )}
+   641→                  </div>
+   642→
+   643→                  <div className="mt-3 pt-2 border-t border-light-beige/50">
+   644→                    <Button
+   645→                      variant="outline"
+   646→                      size="sm"
+   647→                      className="w-full border-light-beige text-elegant-orange hover:bg-elegant-orange/10"
+   648→                      onClick={() => handleView(d)}
+   649→                    >
+   650→                      <Eye className="h-4 w-4 mr-1" />
+   651→                      विवरण देखें
+   652→                    </Button>
+   653→                  </div>
+   654→                </CardContent>
+   655→              </Card>
+   656→            ))}
+   657→          </div>
+   658→        ) : (
+   659→          <Card className="border-light-beige">
+   660→            <CardContent className="p-8 text-center text-muted-brown">
+   661→              कोई दान नहीं मिला।
+   662→            </CardContent>
+   663→          </Card>
+   664→        )}
+   665→      </div>
+   666→
+   667→      {/* Pagination */}
+   668→      {totalPages > 1 && (
+   669→        <div className="flex items-center justify-between">
+   670→          <p className="text-sm text-muted-brown">
+   671→            पृष्ठ {page} / {totalPages}
+   672→          </p>
+   673→          <div className="flex gap-1">
+   674→            <Button
+   675→              variant="outline"
+   676→              size="sm"
+   677→              className="border-light-beige text-deep-warm-brown hover:bg-light-beige"
+   678→              disabled={page <= 1}
+   679→              onClick={() => goToPage(page - 1)}
+   680→            >
+   681→              <ChevronLeft className="h-4 w-4" />
+   682→              <span className="hidden sm:inline ml-1">पिछला</span>
+   683→            </Button>
+   684→            <Button
+   685→              variant="outline"
+   686→              size="sm"
+   687→              className="border-light-beige text-deep-warm-brown hover:bg-light-beige"
+   688→              disabled={page >= totalPages}
+   689→              onClick={() => goToPage(page + 1)}
+   690→            >
+   691→              <span className="hidden sm:inline mr-1">अगला</span>
+   692→              <ChevronRight className="h-4 w-4" />
+   693→            </Button>
+   694→          </div>
+   695→        </div>
+   696→      )}
+   697→
+   698→      {/* Detail Dialog */}
+   699→      <DonationDetailDialog
+   700→        donation={selectedDonation}
+   701→        open={detailOpen}
+   702→        onOpenChange={setDetailOpen}
+   703→      />
+   704→    </div>
+   705→  )
+   706→}
+   707→

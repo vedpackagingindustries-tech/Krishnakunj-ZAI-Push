@@ -716,6 +716,16 @@ export default function HomePage() {
             © {new Date().getFullYear()} {TEMPLE_NAME} — जिला साहू संघ
             खैरागढ़-छुईखदान-गंडई
           </p>
+
+          {/* Admin Login — only in footer */}
+          <p className="text-center mt-4">
+            <a
+              href="/admin"
+              className="text-xs text-muted-brown/50 hover:text-muted-brown transition-colors"
+            >
+              एडमिन लॉगिन
+            </a>
+          </p>
         </div>
       </footer>
     </div>

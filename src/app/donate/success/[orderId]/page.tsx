@@ -208,7 +208,8 @@ export default function DonationSuccessPage() {
   const [error, setError] = useState<ErrorType>(null);
   const [audioAllowed, setAudioAllowed] = useState(false);
   const [audioPlayed, setAudioPlayed] = useState(false);
-  const audioAttempted = useRef(false);
+  const [audioAttempted] = useRef(false);
+  const [officials, setOfficials] = useState<{name: string; designation: string; phone?: string}[]>([]);
 
   const fetchDonation = useCallback(async () => {
     setLoading(true);
@@ -245,6 +246,14 @@ export default function DonationSuccessPage() {
   useEffect(() => {
     fetchDonation();
   }, [fetchDonation]);
+
+  /* Fetch officials from DB */
+  useEffect(() => {
+    fetch('/api/officials')
+      .then(r => r.json())
+      .then(d => setOfficials(d.officials || []))
+      .catch(() => {});
+  }, []);
 
   /* Attempt autoplay of devotional audio */
   useEffect(() => {
@@ -551,6 +560,24 @@ export default function DonationSuccessPage() {
               <p className="text-base font-bold text-elegant-orange mt-3">जय श्री कृष्ण</p>
               <p className="text-base font-bold text-elegant-orange">जय श्री राधे</p>
             </div>
+
+            {officials && officials.length > 0 && (
+              <>
+                <GoldDivider />
+                <div className="text-center mt-2 mb-2">
+                  <p className="text-xs font-semibold text-deep-maroon uppercase tracking-wide">पदाधिकारी</p>
+                </div>
+                <div className="space-y-1.5">
+                  {officials.map(o => (
+                    <div key={o.name} className="flex flex-col sm:flex-row sm:gap-2 text-xs sm:text-sm">
+                      <span className="font-semibold text-deep-warm-brown">{o.name}</span>
+                      <span className="text-elegant-orange">— {o.designation}</span>
+                      {o.phone && <span className="text-muted-brown sm:ml-auto">मो. {o.phone}</span>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* Lotus / Diya decorative element */}
             <LotusDiya />
