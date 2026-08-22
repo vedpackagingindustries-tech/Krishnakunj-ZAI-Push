@@ -31,8 +31,8 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Login/setup pages should not use the admin layout
-  const isAuthPage = pathname === '/admin/login' || pathname === '/admin/setup'
+  // Login/setup/entry pages should not use the admin layout chrome
+  const isAuthPage = pathname === '/admin/login' || pathname === '/admin/setup' || pathname === '/admin'
 
   useEffect(() => {
     if (isAuthPage) {

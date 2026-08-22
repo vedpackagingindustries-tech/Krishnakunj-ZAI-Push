@@ -107,9 +107,9 @@ export default function AdminSetupPage() {
           </svg>
         </div>
 
-        <h1 style={styles.heading}>एडमिन खाता बनाएं</h1>
+        <h1 style={styles.heading}>पहला एडमिन खाता बनाएं</h1>
         <p style={styles.subtitle}>
-          पहला एडमिन खाता बनाकर प्रबंधन शुरू करें
+          वेबसाइट और दान प्रबंधन के लिए अपना सुरक्षित एडमिन खाता बनाएं।
         </p>
 
         {error && (
@@ -136,7 +136,7 @@ export default function AdminSetupPage() {
         <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.fieldGroup}>
             <label style={styles.label} htmlFor="name">
-              नाम <span style={styles.required}>*</span>
+              पूरा नाम <span style={styles.required}>*</span>
             </label>
             <input
               id="name"
@@ -152,7 +152,7 @@ export default function AdminSetupPage() {
 
           <div style={styles.fieldGroup}>
             <label style={styles.label} htmlFor="email">
-              ईमेल <span style={styles.required}>*</span>
+              ईमेल पता <span style={styles.required}>*</span>
             </label>
             <input
               id="email"
@@ -168,7 +168,7 @@ export default function AdminSetupPage() {
 
           <div style={styles.fieldGroup}>
             <label style={styles.label} htmlFor="whatsapp">
-              व्हाट्सएप नंबर
+              WhatsApp नंबर <span style={styles.required}>*</span>
             </label>
             <input
               id="whatsapp"
@@ -176,6 +176,7 @@ export default function AdminSetupPage() {
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, '').slice(0, 10))}
               placeholder="10 अंकों का मोबाइल नंबर"
+              required
               style={styles.input}
               autoComplete="tel"
             />
@@ -200,7 +201,7 @@ export default function AdminSetupPage() {
 
           <div style={styles.fieldGroup}>
             <label style={styles.label} htmlFor="confirmPassword">
-              पासवर्ड पुष्टि <span style={styles.required}>*</span>
+              पासवर्ड की पुष्टि <span style={styles.required}>*</span>
             </label>
             <input
               id="confirmPassword"
@@ -224,7 +225,7 @@ export default function AdminSetupPage() {
               cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
-            {loading ? 'खाता बनाया जा रहा है...' : 'खाता बनाएं'}
+            {loading ? 'खाता बनाया जा रहा है...' : 'एडमिन खाता बनाएं'}
           </button>
         </form>
       </div>
