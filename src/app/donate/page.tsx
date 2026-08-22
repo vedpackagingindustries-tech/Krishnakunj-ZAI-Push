@@ -12,12 +12,10 @@ import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
 interface DonorData {
   donorName: string;
   mobile: string;
-  email: string;
   address: string;
   city: string;
   district: string;
   state: string;
-  pincode: string;
 }
 
 interface FieldErrors {
@@ -31,12 +29,10 @@ const PRESET_AMOUNTS = [100, 501, 1001, 2001, 5001, 11001];
 const INITIAL_DONOR: DonorData = {
   donorName: "",
   mobile: "",
-  email: "",
   address: "",
   city: "",
   district: "",
   state: "",
-  pincode: "",
 };
 
 // ---------------------------------------------------------------------------
@@ -376,20 +372,6 @@ function StepDetails({
 
         {/* Optional Fields */}
         <div>
-          <label htmlFor="email" className={labelClass}>
-            ईमेल
-          </label>
-          <input
-            id="email"
-            type="email"
-            placeholder="your@email.com (वैकल्पिक)"
-            value={donorData.email}
-            onChange={(e) => updateField("email", e.target.value)}
-            className={inputClass}
-          />
-        </div>
-
-        <div>
           <label htmlFor="address" className={labelClass}>
             पता
           </label>
@@ -432,37 +414,18 @@ function StepDetails({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="state" className={labelClass}>
-              राज्य
-            </label>
-            <input
-              id="state"
-              type="text"
-              placeholder="राज्य"
-              value={donorData.state}
-              onChange={(e) => updateField("state", e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label htmlFor="pincode" className={labelClass}>
-              पिनकोड
-            </label>
-            <input
-              id="pincode"
-              type="text"
-              maxLength={6}
-              placeholder="पिनकोड"
-              value={donorData.pincode}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, "").slice(0, 6);
-                updateField("pincode", val);
-              }}
-              className={inputClass}
-            />
-          </div>
+        <div>
+          <label htmlFor="state" className={labelClass}>
+            राज्य
+          </label>
+          <input
+            id="state"
+            type="text"
+            placeholder="राज्य"
+            value={donorData.state}
+            onChange={(e) => updateField("state", e.target.value)}
+            className={inputClass}
+          />
         </div>
       </div>
 
@@ -568,12 +531,10 @@ function StepPayment({
             amount,
             donorName: donorData.donorName.trim(),
             mobile: donorData.mobile,
-            email: donorData.email || undefined,
             address: donorData.address || undefined,
             city: donorData.city || undefined,
             district: donorData.district || undefined,
             state: donorData.state || undefined,
-            pincode: donorData.pincode || undefined,
           }),
         });
 
