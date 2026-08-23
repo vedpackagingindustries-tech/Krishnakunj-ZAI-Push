@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Noto_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import FloatingWhatsAppWrapper from "@/components/FloatingWhatsAppWrapper";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
+        <FloatingWhatsAppWrapper />
       </body>
     </html>
   );

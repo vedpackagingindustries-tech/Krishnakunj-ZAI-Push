@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   MapPin,
@@ -42,8 +41,6 @@ const PROGRESS_STAGES = [
 
 const FOOTER_LINKS = [
   { label: "मुख्यपृष्ठ", href: "/" },
-  { label: "मंदिर के बारे में", href: "/about" },
-  { label: "मंदिर निर्माण", href: "/construction" },
   { label: "वीडियो", href: "/videos" },
   { label: "संपर्क", href: "/contact" },
   { label: "दान करें", href: "/donate" },
@@ -166,72 +163,7 @@ function SectionHeading({ children, className = "" }: { children: React.ReactNod
 /* ═══════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════ */
-/* ─── Temple bell hook: loops user's MP3 continuously ─── */
-function useTempleBell() {
-  const [bellPlaying, setBellPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const fadeIn = useCallback((audio: HTMLAudioElement) => {
-    if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-    const t = setInterval(() => {
-      if (audio.volume < 0.6) {
-        audio.volume = Math.min(audio.volume + 0.03, 0.6);
-      } else {
-        clearInterval(t);
-      }
-    }, 100);
-    fadeTimerRef.current = t;
-  }, []);
-
-  const toggleBell = useCallback(async () => {
-    try {
-      if (!audioRef.current) {
-        const a = new Audio("/audio/temple-bell.mp3");
-        a.loop = true;
-        a.volume = 0;
-        audioRef.current = a;
-        await a.play();
-        setBellPlaying(true);
-        setTimeout(() => fadeIn(a), 50);
-      } else if (audioRef.current.paused) {
-        const a = audioRef.current;
-        a.volume = 0;
-        await a.play();
-        setBellPlaying(true);
-        fadeIn(a);
-      } else {
-        const a = audioRef.current;
-        if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-        const t = setInterval(() => {
-          if (a.volume > 0.05) {
-            a.volume = Math.max(a.volume - 0.05, 0);
-          } else {
-            a.pause();
-            clearInterval(t);
-            setBellPlaying(false);
-          }
-        }, 50);
-        fadeTimerRef.current = t;
-      }
-    } catch {
-      // audio blocked
-    }
-  }, [fadeIn]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ""; }
-      if (fadeTimerRef.current) clearInterval(fadeTimerRef.current);
-    };
-  }, []);
-
-  return { bellPlaying, toggleBell };
-}
-
 export default function HomePage() {
-  const { bellPlaying, toggleBell } = useTempleBell();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FFF9ED" }}>
@@ -379,10 +311,10 @@ export default function HomePage() {
                 🙏 अभी दान करें
               </a>
               <a
-                href="/construction"
+                href="/donate"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-warm-white text-deep-warm-brown text-base sm:text-lg font-medium rounded-full border-2 border-light-gold hover:border-soft-saffron hover:bg-warm-ivory transition-colors min-h-[48px]"
               >
-                मंदिर निर्माण देखें
+                अभी दान करें
               </a>
             </div>
           </div>
@@ -519,10 +451,10 @@ export default function HomePage() {
           </div>
           <div className="text-center mt-6">
             <a
-              href="/construction"
+              href="/donate"
               className="inline-flex items-center gap-1 text-sm font-medium text-soft-saffron hover:text-elegant-orange transition-colors"
             >
-              पूरी प्रगति देखें
+              दान करें
               <ChevronRight size={16} />
             </a>
           </div>
@@ -625,22 +557,6 @@ export default function HomePage() {
           </div>
         </Section>
       </main>
-
-      {/* ─── FLOATING BELL BUTTON ─── */}
-      <button
-        onClick={toggleBell}
-        aria-label={bellPlaying ? "घंटी बंद करें" : "घंटी बजाएं"}
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-300 border-2"
-        style={{
-          backgroundColor: bellPlaying ? "#E88A24" : "#FFFFFF",
-          borderColor: "#D6AE5C",
-          boxShadow: bellPlaying
-            ? "0 4px 20px rgba(232,138,36,0.4)"
-            : "0 2px 12px rgba(214,174,92,0.25)",
-        }}
-      >
-        {bellPlaying ? "🔕" : "🔔"}
-      </button>
 
       {/* ─── FOOTER ─── */}
       <footer

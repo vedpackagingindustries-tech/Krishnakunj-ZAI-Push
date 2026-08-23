@@ -13,9 +13,6 @@ interface DonorData {
   donorName: string;
   mobile: string;
   address: string;
-  city: string;
-  district: string;
-  state: string;
 }
 
 interface FieldErrors {
@@ -31,9 +28,6 @@ const INITIAL_DONOR: DonorData = {
   donorName: "",
   mobile: "",
   address: "",
-  city: "",
-  district: "",
-  state: "",
 };
 
 // ---------------------------------------------------------------------------
@@ -391,49 +385,7 @@ function StepDetails({
           {errors.address && <p className={errorClass}>{errors.address}</p>}
         </div>
 
-        {/* Optional Fields */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="city" className={labelClass}>
-              शहर
-            </label>
-            <input
-              id="city"
-              type="text"
-              placeholder="शहर"
-              value={donorData.city}
-              onChange={(e) => updateField("city", e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label htmlFor="district" className={labelClass}>
-              जिला
-            </label>
-            <input
-              id="district"
-              type="text"
-              placeholder="जिला"
-              value={donorData.district}
-              onChange={(e) => updateField("district", e.target.value)}
-              className={inputClass}
-            />
-          </div>
-        </div>
 
-        <div>
-          <label htmlFor="state" className={labelClass}>
-            राज्य
-          </label>
-          <input
-            id="state"
-            type="text"
-            placeholder="राज्य"
-            value={donorData.state}
-            onChange={(e) => updateField("state", e.target.value)}
-            className={inputClass}
-          />
-        </div>
       </div>
 
       {/* Consent Checkbox */}
@@ -539,9 +491,6 @@ function StepPayment({
               donorName: donorData.donorName.trim(),
               mobile: donorData.mobile,
               address: donorData.address.trim() || undefined,
-              city: donorData.city || undefined,
-              district: donorData.district || undefined,
-              state: donorData.state || undefined,
             }),
           });
           const data = await res.json();

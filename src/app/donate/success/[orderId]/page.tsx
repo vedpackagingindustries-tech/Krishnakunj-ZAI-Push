@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import OrnamentalDivider from '@/components/temple/OrnamentalDivider';
@@ -206,9 +206,6 @@ export default function DonationSuccessPage() {
   const [donation, setDonation] = useState<DonationRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ErrorType>(null);
-  const [audioAllowed, setAudioAllowed] = useState(false);
-  const [audioPlayed, setAudioPlayed] = useState(false);
-  const [audioAttempted] = useRef(false);
   const [officials, setOfficials] = useState<{name: string; designation: string; phone?: string}[]>([]);
 
   const fetchDonation = useCallback(async () => {
@@ -254,35 +251,6 @@ export default function DonationSuccessPage() {
       .then(d => setOfficials(d.officials || []))
       .catch(() => {});
   }, []);
-
-  /* Attempt autoplay of devotional audio */
-  useEffect(() => {
-    if (!donation || audioAttempted.current) return;
-    audioAttempted.current = true;
-
-    const audio = new Audio('/audio/jai-shri-krishna.mp3');
-    audio.loop = false;
-
-    const tryPlay = audio.play();
-    if (tryPlay !== undefined) {
-      tryPlay
-        .then(() => {
-          setAudioPlayed(true);
-        })
-        .catch(() => {
-          setAudioAllowed(true);
-        });
-    }
-  }, [donation]);
-
-  const handlePlayAudio = () => {
-    const audio = new Audio('/audio/jai-shri-krishna.mp3');
-    audio.loop = false;
-    audio.play().then(() => {
-      setAudioPlayed(true);
-      setAudioAllowed(false);
-    });
-  };
 
   const handlePrint = () => {
     window.print();
@@ -417,20 +385,6 @@ export default function DonationSuccessPage() {
             </p>
           </div>
         </section>
-
-        {/* ══════════════════════════════════════════════
-            DEVOTIONAL AUDIO BUTTON
-           ══════════════════════════════════════════════ */}
-        {audioAllowed && !audioPlayed && (
-          <div className="flex justify-center px-4 pb-6 no-print">
-            <button
-              onClick={handlePlayAudio}
-              className="rounded-full bg-elegant-orange text-white px-6 py-3 text-base font-semibold hover:bg-soft-saffron transition-colors shadow-md"
-            >
-              🔊 जय श्री कृष्ण, जय श्री राधे
-            </button>
-          </div>
-        )}
 
         {/* ══════════════════════════════════════════════
             ACTION BUTTONS (above receipt)

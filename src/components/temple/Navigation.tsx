@@ -5,8 +5,6 @@ import { Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "मुख्यपृष्ठ", href: "/" },
-  { label: "मंदिर के बारे में", href: "/about" },
-  { label: "मंदिर निर्माण", href: "/construction" },
   { label: "वीडियो", href: "/videos" },
   { label: "संपर्क", href: "/contact" },
 ];

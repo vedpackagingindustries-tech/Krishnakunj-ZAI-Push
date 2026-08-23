@@ -105,9 +105,6 @@ export async function createPaymentOrder(
   extras?: {
     email?: string;
     address?: string;
-    city?: string;
-    district?: string;
-    state?: string;
     pincode?: string;
   },
 ): Promise<{ receiptNumber: string } & CreatePaymentOrderResult> {
@@ -125,9 +122,6 @@ export async function createPaymentOrder(
           mobile,
           email: extras?.email ?? null,
           address: extras?.address ?? null,
-          city: extras?.city ?? null,
-          district: extras?.district ?? null,
-          state: extras?.state ?? null,
           pincode: extras?.pincode ?? null,
           amount,
           currency: CURRENCY,

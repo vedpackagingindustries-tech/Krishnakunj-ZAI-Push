@@ -23,9 +23,6 @@ const createOrderSchema = z.object({
     .optional()
     .or(z.literal('')),
   address: z.string().optional(),
-  city: z.string().optional(),
-  district: z.string().optional(),
-  state: z.string().optional(),
   pincode: z.string().optional(),
 });
 
@@ -52,9 +49,6 @@ export async function POST(request: NextRequest) {
     const result = await createPaymentOrder(data.amount, data.donorName, data.mobile, {
       email: data.email && data.email.length > 0 ? data.email : undefined,
       address: data.address,
-      city: data.city,
-      district: data.district,
-      state: data.state,
       pincode: data.pincode,
     });
 
