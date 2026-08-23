@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPaymentOrder } from '@/lib/payment';
+import { db, isDbAvailable } from '@/lib/db';
+
+// ---------------------------------------------------------------------------
+// In-memory rate limiter: IP → timestamp[]
+// ---------------------------------------------------------------------------
+
+const orderRateMap = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 60 seconds
+const RATE_LIMIT_MAX = 5; // max orders per window
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const timestamps = orderRateMap.get(ip) || [];
+  // Filter out timestamps outside the window
+  const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  orderRateMap.set(ip, recent);
+  return recent.length >= RATE_LIMIT_MAX;
+}
+
+function recordOrder(ip: string): void {
+  const now = Date.now();
+  const timestamps = orderRateMap.get(ip) || [];
+  const recent = timestamps.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+  recent.push(now);
+  orderRateMap.set(ip, recent);
+}
+
+// ---------------------------------------------------------------------------
+// Client IP helper
+// ---------------------------------------------------------------------------
+
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return request.headers.get('x-real-ip') || 'unknown';
+}
 
 // ---------------------------------------------------------------------------
 // Zod validation schema (Hindi error messages)
@@ -24,6 +62,7 @@ const createOrderSchema = z.object({
     .or(z.literal('')),
   address: z.string().optional(),
   pincode: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -32,6 +71,19 @@ const createOrderSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+
+    // Rate limit check
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'बहुत अधिक अनुरोध। कृपया कुछ समय बाद पुनः प्रयास करें।',
+        },
+        { status: 429 },
+      );
+    }
+
     const body = await request.json();
 
     const parsed = createOrderSchema.safeParse(body);
@@ -45,12 +97,72 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    const { mobile, idempotencyKey } = data;
 
-    const result = await createPaymentOrder(data.amount, data.donorName, data.mobile, {
-      email: data.email && data.email.length > 0 ? data.email : undefined,
-      address: data.address,
-      pincode: data.pincode,
-    });
+    // --- Idempotency check ---
+    if (idempotencyKey && isDbAvailable()) {
+      try {
+        const existing = await db.donation.findFirst({
+          where: {
+            idempotencyKey,
+            paymentStatus: 'PENDING',
+          },
+        });
+        if (existing && existing.paymentOrderId) {
+          return NextResponse.json({
+            success: true,
+            orderId: existing.paymentOrderId,
+            receiptNumber: existing.receiptNumber,
+            amount: existing.amount,
+            upiLink: `upi://pay?pa=sahubhagwat392@indianbk&pn=${encodeURIComponent('कृष्णकुंज माँ कर्मा धाम')}&am=${existing.amount}&cu=INR&tn=${encodeURIComponent(`मंदिर निर्माण दान - ${existing.receiptNumber}`)}`,
+          });
+        }
+      } catch {
+        // DB query failed — continue with order creation
+      }
+    }
+
+    // --- Anti-fraud: check for too many PENDING orders from same mobile ---
+    if (isDbAvailable()) {
+      try {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const pendingCount = await db.donation.count({
+          where: {
+            mobile,
+            paymentStatus: 'PENDING',
+            createdAt: {
+              gte: twentyFourHoursAgo,
+            },
+          },
+        });
+        if (pendingCount >= 3) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'आपके मोबाइल नंबर से बहुत अधिक लंबित ऑर्डर हैं। कृपया पहले पूर्व भुगतान करें या बाद में पुनः प्रयास करें।',
+            },
+            { status: 429 },
+          );
+        }
+      } catch {
+        // DB query failed — continue
+      }
+    }
+
+    // Record this order for rate limiting
+    recordOrder(ip);
+
+    const result = await createPaymentOrder(
+      data.amount,
+      data.donorName,
+      data.mobile,
+      {
+        email: data.email && data.email.length > 0 ? data.email : undefined,
+        address: data.address,
+        pincode: data.pincode,
+        idempotencyKey: idempotencyKey || undefined,
+      },
+    );
 
     return NextResponse.json({
       success: true,

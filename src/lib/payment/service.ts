@@ -106,6 +106,7 @@ export async function createPaymentOrder(
     email?: string;
     address?: string;
     pincode?: string;
+    idempotencyKey?: string;
   },
 ): Promise<{ receiptNumber: string } & CreatePaymentOrderResult> {
   const receiptNumber = await generateReceiptNumber();
@@ -123,6 +124,7 @@ export async function createPaymentOrder(
           email: extras?.email ?? null,
           address: extras?.address ?? null,
           pincode: extras?.pincode ?? null,
+          idempotencyKey: extras?.idempotencyKey ?? null,
           amount,
           currency: CURRENCY,
           paymentMethod: 'UPI',

@@ -21,10 +21,8 @@ model Donation {
   mobile            String
   email             String?
   address           String?
-  city              String?
-  district          String?
-  state             String?
   pincode           String?
+  idempotencyKey    String?
   amount            Int
   currency          String    @default("INR")
   paymentMethod     String?
@@ -161,6 +159,7 @@ model AuditLog {
   adminId       String?
   adminName     String   @default("")
   action        String
+  category      String?   // FINANCIAL, ADMIN
   entityType    String?   // donation, official, media, video, content, setting, admin
   entityId      String?
   metadata      String?   // JSON string

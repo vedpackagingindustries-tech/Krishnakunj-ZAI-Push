@@ -2,12 +2,7 @@
 
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
-
-const NAV_LINKS = [
-  { label: "मुख्यपृष्ठ", href: "/" },
-  { label: "वीडियो", href: "/videos" },
-  { label: "संपर्क", href: "/contact" },
-];
+import { NAV_LINKS } from "@/lib/temple-config";
 
 export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);

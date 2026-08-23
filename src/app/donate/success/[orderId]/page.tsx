@@ -16,9 +16,6 @@ interface DonationRecord {
   mobile: string;
   email: string;
   address: string;
-  city: string;
-  district: string;
-  state: string;
   pincode: string;
   amount: number;
   currency: string;

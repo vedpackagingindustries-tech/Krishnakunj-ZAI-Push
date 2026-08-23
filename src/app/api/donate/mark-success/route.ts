@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db, isDbAvailable } from '@/lib/db';
 import { randomBytes } from 'crypto';
+import { logFinancialEvent } from '@/lib/audit';
 
 // ---------------------------------------------------------------------------
 // Zod validation schema
@@ -10,6 +11,18 @@ import { randomBytes } from 'crypto';
 const markSuccessSchema = z.object({
   orderId: z.string().min(1, 'कृपया ऑर्डर आईडी दर्ज करें।'),
 });
+
+// ---------------------------------------------------------------------------
+// Client IP helper
+// ---------------------------------------------------------------------------
+
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return request.headers.get('x-real-ip') || 'unknown';
+}
 
 // ---------------------------------------------------------------------------
 // POST /api/donate/mark-success
@@ -39,6 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderId } = parsed.data;
+    const ip = getClientIp(request);
 
     if (!isDbAvailable()) {
       return NextResponse.json({
@@ -59,6 +73,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Idempotency: if already SUCCESS, return existing record
+    if (donation.paymentStatus === 'SUCCESS') {
+      return NextResponse.json({
+        success: true,
+        donation,
+      });
+    }
+
     // Generate a simulated UPI transaction ID
     const transactionId = `UPI-${randomBytes(8).toString('hex').toUpperCase()}`;
     const now = new Date();
@@ -72,6 +94,22 @@ export async function POST(request: NextRequest) {
         transactionId,
         receiptGeneratedAt: now,
       },
+    });
+
+    // Log financial audit event
+    await logFinancialEvent({
+      action: 'PAYMENT_SUCCESS',
+      entityType: 'donation',
+      entityId: donation.id,
+      metadata: {
+        amount: donation.amount,
+        currency: donation.currency,
+        receiptNumber: donation.receiptNumber,
+        transactionId,
+        donorName: donation.donorName,
+        mobile: donation.mobile,
+      },
+      ipAddress: ip,
     });
 
     return NextResponse.json({

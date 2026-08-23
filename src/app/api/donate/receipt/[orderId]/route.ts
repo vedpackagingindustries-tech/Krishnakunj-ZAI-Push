@@ -4,8 +4,8 @@ import { db, isDbAvailable } from '@/lib/db';
 // ---------------------------------------------------------------------------
 // GET /api/donate/receipt/[orderId]
 //
-// Returns the full donation record for the given orderId.
-// Used by the receipt/success page to display donation details.
+// Returns the full donation record only if paymentStatus === 'SUCCESS'.
+// Otherwise returns 404 to prevent access to non-successful receipts.
 // ---------------------------------------------------------------------------
 
 export async function GET(
@@ -29,6 +29,17 @@ export async function GET(
     if (!donation) {
       return NextResponse.json(
         { success: false, error: 'दान रसीद नहीं मिली।' },
+        { status: 404 },
+      );
+    }
+
+    // Only return receipt data if payment is successful
+    if (donation.paymentStatus !== 'SUCCESS') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'रसीद अभी तैयार नहीं है। भुगतान पुष्टि होने पर यह दिखाई देगी।',
+        },
         { status: 404 },
       );
     }

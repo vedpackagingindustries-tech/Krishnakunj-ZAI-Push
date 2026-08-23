@@ -31,8 +31,8 @@ export default function AdminLayout({
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Login/setup/entry pages should not use the admin layout chrome
-  const isAuthPage = pathname === '/admin/login' || pathname === '/admin/setup' || pathname === '/admin'
+  // Auth/setup/entry/forgot-password pages should not use the admin layout chrome
+  const isAuthPage = pathname === '/admin/login' || pathname === '/admin/setup' || pathname === '/admin' || pathname === '/admin/forgot-password'
 
   useEffect(() => {
     if (isAuthPage) {
@@ -43,6 +43,7 @@ export default function AdminLayout({
     const checkSession = async () => {
       const token = getAdminToken()
       if (!token) {
+        clearAdminToken()
         router.replace('/admin/login')
         return
       }
@@ -58,6 +59,8 @@ export default function AdminLayout({
           router.replace('/admin/login')
         }
       } catch {
+        // Session validation failed (expired or invalid)
+        // Clear token and redirect to login
         clearAdminToken()
         router.replace('/admin/login')
       } finally {

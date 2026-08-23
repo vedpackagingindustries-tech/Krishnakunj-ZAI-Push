@@ -463,7 +463,7 @@ export default function HomePage() {
         {/* ─── TEMPLE PHOTO GALLERY ─── */}
         <Section id="gallery">
           <Camera size={24} className="mx-auto mb-3 text-soft-saffron" />
-          <SectionHeading>मंदिर निर्माण की झलकियाँ</SectionHeading>
+          <SectionHeading>मंदिर निर्माण की झलकियां</SectionHeading>
           <OrnamentalDivider />
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {/* Featured: The attached temple photo */}

@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyPassword, createSession } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { db, isDbAvailable } from '@/lib/db'
+import { logAdminEvent } from '@/lib/audit'
 
 // In-memory rate limiting: IP -> { count, firstAttemptAt }
 const loginAttempts = new Map<string, { count: number; firstAttemptAt: number }>()
 
-const MAX_ATTEMPTS = 5
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+// In-memory account lockout: username (email) -> { count, lockedUntil }
+const accountLockouts = new Map<string, { count: number; lockedUntil: number | null }>()
+
+const MAX_IP_ATTEMPTS = 5
+const IP_LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+
+const MAX_ACCOUNT_ATTEMPTS = 10
+const ACCOUNT_LOCKOUT_DURATION_MS = 30 * 60 * 1000 // 30 minutes
 
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
@@ -19,9 +26,9 @@ function getClientIp(request: NextRequest): string {
 function isIpLocked(ip: string): boolean {
   const record = loginAttempts.get(ip)
   if (!record) return false
-  if (record.count >= MAX_ATTEMPTS) {
+  if (record.count >= MAX_IP_ATTEMPTS) {
     const elapsed = Date.now() - record.firstAttemptAt
-    if (elapsed < LOCKOUT_DURATION_MS) {
+    if (elapsed < IP_LOCKOUT_DURATION_MS) {
       return true
     }
     // Lockout expired, reset
@@ -44,15 +51,44 @@ function clearFailedAttempts(ip: string): void {
   loginAttempts.delete(ip)
 }
 
+function isAccountLocked(email: string): boolean {
+  const record = accountLockouts.get(email)
+  if (!record) return false
+  if (record.lockedUntil && Date.now() < record.lockedUntil) {
+    return true
+  }
+  // Lockout expired or not locked
+  if (record.lockedUntil) {
+    accountLockouts.delete(email)
+  }
+  return false
+}
+
+function recordAccountFailedAttempt(email: string): void {
+  const existing = accountLockouts.get(email)
+  if (existing) {
+    existing.count += 1
+    if (existing.count >= MAX_ACCOUNT_ATTEMPTS) {
+      existing.lockedUntil = Date.now() + ACCOUNT_LOCKOUT_DURATION_MS
+    }
+  } else {
+    accountLockouts.set(email, { count: 1, lockedUntil: null })
+  }
+}
+
+function clearAccountLockout(email: string): void {
+  accountLockouts.delete(email)
+}
+
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request)
 
-    // Rate limit check
+    // Rate limit check (IP-based)
     if (isIpLocked(ip)) {
       const record = loginAttempts.get(ip)
       const remainingMs = record
-        ? LOCKOUT_DURATION_MS - (Date.now() - record.firstAttemptAt)
+        ? IP_LOCKOUT_DURATION_MS - (Date.now() - record.firstAttemptAt)
         : 0
       const remainingMin = Math.ceil(remainingMs / 60000)
       return NextResponse.json(
@@ -82,13 +118,45 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const trimmedEmail = email.trim().toLowerCase()
+
+    // Account lockout check
+    if (isAccountLocked(trimmedEmail)) {
+      const record = accountLockouts.get(trimmedEmail)
+      const remainingMs = record?.lockedUntil
+        ? record.lockedUntil - Date.now()
+        : 0
+      const remainingMin = Math.ceil(remainingMs / 60000)
+      return NextResponse.json(
+        {
+          error: `इस खाते को अस्थायी रूप से लॉक किया गया है। कृपया ${remainingMin} मिनट बाद पुनः प्रयास करें।`,
+        },
+        { status: 429 }
+      )
+    }
+
+    if (!isDbAvailable()) {
+      return NextResponse.json(
+        { error: 'डेटाबेस अभी उपलब्ध नहीं है। कृपया बाद में प्रयास करें।' },
+        { status: 503 }
+      )
+    }
+
     // Find admin by email
     const admin = await db.admin.findUnique({
-      where: { email: email.trim().toLowerCase() },
+      where: { email: trimmedEmail },
     })
 
     if (!admin) {
       recordFailedAttempt(ip)
+      await logAdminEvent({
+        adminId: '',
+        adminName: '',
+        action: 'LOGIN_FAILED',
+        entityType: 'admin',
+        metadata: { reason: 'email_not_found', email: trimmedEmail },
+        ipAddress: ip,
+      })
       return NextResponse.json(
         { error: 'ईमेल या पासवर्ड गलत है।' },
         { status: 401 }
@@ -98,6 +166,15 @@ export async function POST(request: NextRequest) {
     // Check if admin is active
     if (!admin.isActive) {
       recordFailedAttempt(ip)
+      await logAdminEvent({
+        adminId: admin.id,
+        adminName: admin.name,
+        action: 'LOGIN_FAILED',
+        entityType: 'admin',
+        entityId: admin.id,
+        metadata: { reason: 'account_inactive', email: trimmedEmail },
+        ipAddress: ip,
+      })
       return NextResponse.json(
         { error: 'यह खाता निष्क्रिय कर दिया गया है। कृपया प्रबंधन से संपर्क करें।' },
         { status: 403 }
@@ -108,6 +185,16 @@ export async function POST(request: NextRequest) {
     const valid = await verifyPassword(password, admin.passwordHash)
     if (!valid) {
       recordFailedAttempt(ip)
+      recordAccountFailedAttempt(trimmedEmail)
+      await logAdminEvent({
+        adminId: admin.id,
+        adminName: admin.name,
+        action: 'LOGIN_FAILED',
+        entityType: 'admin',
+        entityId: admin.id,
+        metadata: { reason: 'wrong_password', email: trimmedEmail },
+        ipAddress: ip,
+      })
       return NextResponse.json(
         { error: 'ईमेल या पासवर्ड गलत है।' },
         { status: 401 }
@@ -116,6 +203,7 @@ export async function POST(request: NextRequest) {
 
     // Clear failed attempts on success
     clearFailedAttempts(ip)
+    clearAccountLockout(trimmedEmail)
 
     // Create session
     const token = await createSession(admin.id)
@@ -124,6 +212,17 @@ export async function POST(request: NextRequest) {
     await db.admin.update({
       where: { id: admin.id },
       data: { lastLoginAt: new Date() },
+    })
+
+    // Log successful login
+    await logAdminEvent({
+      adminId: admin.id,
+      adminName: admin.name,
+      action: 'LOGIN_SUCCESS',
+      entityType: 'admin',
+      entityId: admin.id,
+      metadata: { email: trimmedEmail, role: admin.role },
+      ipAddress: ip,
     })
 
     return NextResponse.json({

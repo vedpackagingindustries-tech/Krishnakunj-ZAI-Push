@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -166,6 +167,15 @@ export default function AdminLoginPage() {
           >
             {loading ? 'लॉगिन हो रहा है...' : 'लॉगिन करें'}
           </button>
+
+          <div style={{ textAlign: 'center', marginTop: 12 }}>
+            <Link
+              href="/admin/forgot-password"
+              style={{ color: '#E88A24', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
+            >
+              पासवर्ड भूल गए?
+            </Link>
+          </div>
         </form>
       </div>
     </div>
