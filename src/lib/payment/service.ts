@@ -36,23 +36,43 @@ export interface GetPaymentStatusResult {
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a receipt number in format KMD-2026-XXXXXX.
- * Uses DB count when available, otherwise generates a random 6-digit number.
+ * Generate a receipt number in format KMD-{YEAR}-{6-digit sequential number}.
+ *
+ * Concurrency safety: Uses MAX(receiptNumber) for the current year to compute
+ * the next sequential number. The DB @unique constraint on receiptNumber catches
+ * any remaining race condition; on P2002 (unique violation) the function
+ * retries with the next number.
  */
-async function generateReceiptNumber(): Promise<string> {
+async function generateReceiptNumber(retries = 5): Promise<string> {
   const year = new Date().getFullYear();
+  const prefix = `KMD-${year}-`;
+
   if (isDbAvailable()) {
-    try {
-      const count = await db.donation.count();
-      const sequential = String(count + 1).padStart(6, '0');
-      return `KMD-${year}-${sequential}`;
-    } catch {
-      // DB query failed — fall through to random
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        // Find the highest sequential number for this year
+        const maxResult = await db.donation.findFirst({
+          where: { receiptNumber: { startsWith: prefix } },
+          orderBy: { receiptNumber: 'desc' },
+          select: { receiptNumber: true },
+        });
+
+        let nextNum = 1;
+        if (maxResult) {
+          const suffix = maxResult.receiptNumber.slice(prefix.length);
+          nextNum = parseInt(suffix, 10) + 1;
+        }
+
+        const receiptNumber = `${prefix}${String(nextNum).padStart(6, '0')}`;
+        return receiptNumber;
+      } catch {
+        // DB query failed — retry
+      }
     }
   }
   // Fallback: random 6-digit receipt number (no DB)
   const rand = String(Math.floor(100000 + Math.random() * 900000));
-  return `KMD-${year}-${rand}`;
+  return `${prefix}${rand}`;
 }
 
 /**
@@ -108,41 +128,55 @@ export async function createPaymentOrder(
     pincode?: string;
     idempotencyKey?: string;
   },
+  maxRetries = 15,
 ): Promise<{ receiptNumber: string } & CreatePaymentOrderResult> {
-  const receiptNumber = await generateReceiptNumber();
-  const orderId = randomUUID();
-  const upiLink = buildUpiLink(amount, receiptNumber);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const receiptNumber = await generateReceiptNumber();
+    const orderId = randomUUID();
+    const upiLink = buildUpiLink(amount, receiptNumber);
 
-  // Persist the donation as PENDING (only if DB is available)
-  if (isDbAvailable()) {
-    try {
-      await db.donation.create({
-        data: {
-          receiptNumber,
-          donorName,
-          mobile,
-          email: extras?.email ?? null,
-          address: extras?.address ?? null,
-          pincode: extras?.pincode ?? null,
-          idempotencyKey: extras?.idempotencyKey ?? null,
-          amount,
-          currency: CURRENCY,
-          paymentMethod: 'UPI',
-          paymentOrderId: orderId,
-          paymentStatus: 'PENDING',
-        },
-      });
-    } catch {
-      // DB write failed — donation proceeds without DB tracking
+    // Persist the donation as PENDING (only if DB is available)
+    if (isDbAvailable()) {
+      try {
+        await db.donation.create({
+          data: {
+            receiptNumber,
+            donorName,
+            mobile,
+            email: extras?.email ?? null,
+            address: extras?.address ?? null,
+            pincode: extras?.pincode ?? null,
+            idempotencyKey: extras?.idempotencyKey ?? null,
+            amount,
+            currency: CURRENCY,
+            paymentMethod: 'UPI',
+            paymentOrderId: orderId,
+            paymentStatus: 'PENDING',
+          },
+        });
+        return { orderId, receiptNumber, upiLink, qrData: upiLink };
+      } catch (err: unknown) {
+        // P2002 = unique constraint violation → wait briefly then retry
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'code' in err &&
+          (err as { code: string }).code === 'P2002'
+        ) {
+          // Jittered backoff: 5-20ms random delay to spread colliding requests
+          await new Promise((r) => setTimeout(r, 5 + Math.random() * 15));
+          continue;
+        }
+        // Any other DB error — fall through to return without DB
+      }
     }
+
+    // No DB or non-unique DB error — return order without persistence
+    return { orderId, receiptNumber, upiLink, qrData: upiLink };
   }
 
-  return {
-    orderId,
-    receiptNumber,
-    upiLink,
-    qrData: upiLink, // QR data is the same UPI deep-link encoded as a QR code
-  };
+  // All retries exhausted (should not happen in practice)
+  throw new Error('दान आदेश बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
 }
 
 /**
