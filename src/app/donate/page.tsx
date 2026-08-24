@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
 
@@ -678,40 +677,50 @@ function StepPayment({
 }
 
 // ---------------------------------------------------------------------------
-// Step 4: Payment Processing
+// Step 4: Awaiting Verification (NO auto SUCCESS, NO redirect)
 // ---------------------------------------------------------------------------
 
-function StepProcessing({ orderId }: { orderId: string }) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const timer = setTimeout(async () => {
-      try {
-        await fetch("/api/donate/mark-success", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId }),
-        });
-      } catch {
-        // Even if mark-success fails, still redirect to success page
-      }
-      router.push(`/donate/success/${orderId}`);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [orderId, router]);
-
+function StepAwaitingVerification() {
   return (
-    <div className="flex flex-col items-center justify-center py-16">
+    <div className="flex flex-col items-center justify-center py-12 px-4">
       <div
-        className="w-12 h-12 border-4 border-light-beige border-t-elegant-orange rounded-full animate-spin"
-        role="status"
-        aria-label="भुगतान सत्यापित हो रहा है"
-      />
-      <p className="mt-6 text-lg font-semibold text-deep-warm-brown">
-        भुगतान सत्यापित किया जा रहा है...
+        className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
+        style={{ backgroundColor: '#FFF3E0' }}
+      >
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E88A24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
+      </div>
+
+      <h2 className="text-xl font-bold text-deep-warm-brown text-center mb-3">
+        आपके भुगतान की पुष्टि की प्रतीक्षा है
+      </h2>
+
+      <p className="text-sm text-muted-brown text-center max-w-sm leading-relaxed mb-6">
+        आपका दान दर्ज कर लिया गया है। भुगतान सत्यापित होने के बाद
+        एडमिन द्वारा रसीद जारी की जाएगी।
       </p>
-      <p className="mt-2 text-sm text-muted-brown">कृपया कुछ क्षण प्रतीक्षा करें।</p>
+
+      <div
+        className="rounded-xl p-4 mb-6 w-full max-w-sm"
+        style={{ backgroundColor: '#FFF9ED', border: '1px solid #D6AE5C' }}
+      >
+        <p className="text-xs text-muted-brown text-center leading-relaxed">
+          यदि भुगतान सफल रहा हो तो रसीद कुछ समय में उपलब्ध होगी।
+          किसी भी पूछताछ के लिए संपर्क पृष्ठ पर जाएं।
+        </p>
+      </div>
+
+      <a
+        href="/"
+        className="
+          rounded-full px-8 py-3 text-base font-semibold transition-all duration-200
+          bg-elegant-orange text-warm-white hover:bg-soft-saffron shadow-md active:scale-[0.98]
+        "
+      >
+        मुख्यपृष्ठ पर जाएं
+      </a>
     </div>
   );
 }
@@ -764,7 +773,7 @@ export default function DonatePage() {
         />
       )}
 
-      {step === 4 && orderId && <StepProcessing orderId={orderId} />}
+      {step === 4 && <StepAwaitingVerification />}
     </div>
   );
 }

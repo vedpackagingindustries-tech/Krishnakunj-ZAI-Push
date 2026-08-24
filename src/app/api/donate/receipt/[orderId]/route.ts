@@ -4,8 +4,7 @@ import { db, isDbAvailable } from '@/lib/db';
 // ---------------------------------------------------------------------------
 // GET /api/donate/receipt/[orderId]
 //
-// Returns the full donation record only if paymentStatus === 'SUCCESS'.
-// Otherwise returns 404 to prevent access to non-successful receipts.
+// Returns receipt-safe fields ONLY when paymentStatus === 'SUCCESS'.
 // ---------------------------------------------------------------------------
 
 export async function GET(
@@ -33,7 +32,7 @@ export async function GET(
       );
     }
 
-    // Only return receipt data if payment is successful
+    // Only return receipt data if payment is actually successful
     if (donation.paymentStatus !== 'SUCCESS') {
       return NextResponse.json(
         {
@@ -44,14 +43,27 @@ export async function GET(
       );
     }
 
+    // Return only receipt-necessary fields (no full PII)
     return NextResponse.json({
       success: true,
-      donation,
+      donation: {
+        id: donation.id,
+        receiptNumber: donation.receiptNumber,
+        donorName: donation.donorName,
+        amount: donation.amount,
+        currency: donation.currency,
+        paymentMethod: donation.paymentMethod,
+        paymentStatus: donation.paymentStatus,
+        paidAt: donation.paidAt,
+        receiptGeneratedAt: donation.receiptGeneratedAt,
+        createdAt: donation.createdAt,
+        transactionId: donation.transactionId,
+      },
     });
   } catch (error) {
     console.error('[receipt] Error:', error);
     return NextResponse.json(
-      { success: false, error: 'रसीद प्राप्त करने में त्रुटि हुई। कृपया पुनः प्रयास करें।' },
+      { success: false, error: 'रसीद प्राप्त करने में त्रुटि हुई।' },
       { status: 500 },
     );
   }
