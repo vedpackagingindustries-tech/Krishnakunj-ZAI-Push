@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { hasAnyAdmin } from '@/lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const hasAdmin = await hasAnyAdmin()

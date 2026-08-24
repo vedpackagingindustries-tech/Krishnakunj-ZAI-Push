@@ -12,6 +12,11 @@ function getClientIp(request: NextRequest): string {
   return request.headers.get('x-real-ip') || 'unknown'
 }
 
+// Per-IP rate limit for OTP verification attempts
+const resetIpAttempts = new Map<string, { count: number; windowStart: number }>()
+const RESET_IP_MAX = 10
+const RESET_IP_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+
 // ---------------------------------------------------------------------------
 // POST /api/admin/auth/reset-password
 // ---------------------------------------------------------------------------
@@ -19,6 +24,26 @@ function getClientIp(request: NextRequest): string {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request)
+
+    // Per-IP rate limit
+    const now = Date.now()
+    const ipRecord = resetIpAttempts.get(ip)
+    if (ipRecord) {
+      if (now - ipRecord.windowStart > RESET_IP_WINDOW_MS) {
+        ipRecord.count = 1
+        ipRecord.windowStart = now
+      } else if (ipRecord.count >= RESET_IP_MAX) {
+        return NextResponse.json(
+          { success: false, error: 'बहुत अधिक प्रयास। कृपया 15 मिनट बाद पुनः प्रयास करें।' },
+          { status: 429 }
+        )
+      } else {
+        ipRecord.count++
+      }
+    } else {
+      resetIpAttempts.set(ip, { count: 1, windowStart: now })
+    }
+
     const body = await request.json()
     const { email, otp, newPassword } = body
 
