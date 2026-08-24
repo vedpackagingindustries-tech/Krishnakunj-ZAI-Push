@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server'
-import { hasAnyAdmin } from '@/lib/auth'
+import { db, isDbAvailable } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const hasAdmin = await hasAnyAdmin()
-    return NextResponse.json({ hasAdmin })
+    // If DB is not available, default to hasAdmin: false (shows login page)
+    if (!isDbAvailable()) {
+      return NextResponse.json({ hasAdmin: false })
+    }
+    const count = await db.admin.count()
+    return NextResponse.json({ hasAdmin: count > 0 })
   } catch {
-    return NextResponse.json(
-      { error: 'कुछ त्रुटि हुई। कृपया पुनः प्रयास करें।' },
-      { status: 500 }
-    )
+    // On any error, default to hasAdmin: false (safe fallback)
+    return NextResponse.json({ hasAdmin: false })
   }
 }
