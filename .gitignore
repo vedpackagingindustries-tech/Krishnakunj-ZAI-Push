@@ -60,3 +60,4 @@ download/
 *.tar.gz
 *.png
 .zscripts/
+scripts/
