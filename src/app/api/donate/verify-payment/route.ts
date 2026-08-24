@@ -37,12 +37,10 @@ export async function POST(request: NextRequest) {
       paymentStatus: result.paymentStatus,
       transactionId: result.transactionId ?? undefined,
     });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : 'भुगतान सत्यापन में त्रुटि हुई।';
+  } catch {
     return NextResponse.json(
-      { success: false, error: message },
-      { status: 404 },
+      { success: false, error: 'भुगतान सत्यापन में त्रुटि हुई।' },
+      { status: 500 },
     );
   }
 }

@@ -63,7 +63,7 @@ async function generateReceiptNumber(): Promise<string> {
  * NOTE: In production, replace this with a real payment gateway (Razorpay, PhonePe, etc.)
  * that provides a proper order creation API and returns an order_id for verification.
  */
-function buildUpiLink(amount: number, receiptNumber: string): string {
+export function buildUpiLink(amount: number, receiptNumber: string): string {
   const note = `मंदिर निर्माण दान - ${receiptNumber}`;
   const params = new URLSearchParams({
     pa: UPI_ID,

@@ -1,0 +1,780 @@
+     1→     1→"use client";
+     2→     2→
+     3→     3→import { useState, useCallback, useEffect } from "react";
+     4→     4→import { Checkbox } from "@/components/ui/checkbox";
+     5→     5→import OrnamentalDivider from "@/components/temple/OrnamentalDivider";
+     6→     6→
+     7→     7→// ---------------------------------------------------------------------------
+     8→     8→// Types
+     9→     9→// ---------------------------------------------------------------------------
+    10→    10→
+    11→    11→interface DonorData {
+    12→    12→  donorName: string;
+    13→    13→  mobile: string;
+    14→    14→  address: string;
+    15→    15→}
+    16→    16→
+    17→    17→interface FieldErrors {
+    18→    18→  donorName?: string;
+    19→    19→  mobile?: string;
+    20→    20→  address?: string;
+    21→    21→  consent?: string;
+    22→    22→}
+    23→    23→
+    24→    24→const PRESET_AMOUNTS = [100, 501, 1001, 2001, 5001, 11001];
+    25→    25→
+    26→    26→const INITIAL_DONOR: DonorData = {
+    27→    27→  donorName: "",
+    28→    28→  mobile: "",
+    29→    29→  address: "",
+    30→    30→};
+    31→    31→
+    32→    32→// ---------------------------------------------------------------------------
+    33→    33→// Helpers
+    34→    34→// ---------------------------------------------------------------------------
+    35→    35→
+    36→    36→function formatCurrency(amount: number): string {
+    37→    37→  return amount.toLocaleString("en-IN");
+    38→    38→}
+    39→    39→
+    40→    40→function validateMobile(value: string): string | undefined {
+    41→    41→  const digits = value.replace(/\D/g, "");
+    42→    42→  if (digits.length === 0) return "कृपया मोबाइल नंबर दर्ज करें।";
+    43→    43→  if (!/^[6-9]/.test(digits)) return "मोबाइल नंबर 6, 7, 8, या 9 से शुरू होना चाहिए।";
+    44→    44→  if (digits.length !== 10) return "मोबाइल नंबर 10 अंकों का होना चाहिए।";
+    45→    45→  return undefined;
+    46→    46→}
+    47→    47→
+    48→    48→function validateName(value: string): string | undefined {
+    49→    49→  const trimmed = value.trim();
+    50→    50→  if (trimmed.length === 0) return "कृपया अपना पूरा नाम दर्ज करें।";
+    51→    51→  if (trimmed.length < 2) return "नाम कम से कम 2 अक्षर का होना चाहिए।";
+    52→    52→  return undefined;
+    53→    53→}
+    54→    54→
+    55→    55→// ---------------------------------------------------------------------------
+    56→    56→// Sub-components
+    57→    57→// ---------------------------------------------------------------------------
+    58→    58→
+    59→    59→function StepIndicator({ currentStep }: { currentStep: number }) {
+    60→    60→  const steps = [
+    61→    61→    { n: 1, label: "राशि" },
+    62→    62→    { n: 2, label: "विवरण" },
+    63→    63→    { n: 3, label: "भुगतान" },
+    64→    64→  { n: 4, label: "पुष्टि" },
+    65→    65→  ];
+    66→    66→
+    67→    67→  return (
+    68→    68→    <div className="flex items-center justify-center gap-1 sm:gap-2 mb-6">
+    69→    69→      {steps.map((step, idx) => (
+    70→    70→        <div key={step.n} className="flex items-center">
+    71→    71→          <div className="flex flex-col items-center gap-1">
+    72→    72→            <span
+    73→    73→              className={`
+    74→    74→                flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold transition-colors
+    75→    75→                ${
+    76→    76→                  currentStep >= step.n
+    77→    77→                    ? "bg-elegant-orange text-warm-white"
+    78→    78→                    : "bg-light-beige text-muted-brown"
+    79→    79→                }
+    80→    80→              `}
+    81→    81→            >
+    82→    82→              {currentStep > step.n ? (
+    83→    83→                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    84→    84→                  <polyline points="20 6 9 17 4 12" />
+    85→    85→                </svg>
+    86→    86→              ) : (
+    87→    87→                step.n
+    88→    88→              )}
+    89→    89→            </span>
+    90→    90→            <span
+    91→    91→              className={`text-[10px] sm:text-xs ${
+    92→    92→                currentStep >= step.n ? "text-elegant-orange font-medium" : "text-muted-brown"
+    93→    93→              }`}
+    94→    94→            >
+    95→    95→              {step.label}
+    96→    96→            </span>
+    97→    97→          </div>
+    98→    98→          {idx < steps.length - 1 && (
+    99→    99→            <div
+   100→   100→              className={`w-8 sm:w-12 h-0.5 mx-1 sm:mx-2 rounded-full transition-colors ${
+   101→   101→                currentStep > step.n ? "bg-elegant-orange" : "bg-light-beige"
+   102→   102→              }`}
+   103→   103→            />
+   104→   104→          )}
+   105→   105→        </div>
+   106→   106→      ))}
+   107→   107→    </div>
+   108→   108→  );
+   109→   109→}
+   110→   110→
+   111→   111→// ---------------------------------------------------------------------------
+   112→   112→// Step 1: Donation Amount
+   113→   113→// ---------------------------------------------------------------------------
+   114→   114→
+   115→   115→function StepAmount({
+   116→   116→  amount,
+   117→   117→  setAmount,
+   118→   118→  onProceed,
+   119→   119→}: {
+   120→   120→  amount: number | null;
+   121→   121→  setAmount: (a: number | null) => void;
+   122→   122→  onProceed: () => void;
+   123→   123→}) {
+   124→   124→  const [customInput, setCustomInput] = useState("");
+   125→   125→  const [amountError, setAmountError] = useState("");
+   126→   126→
+   127→   127→  const selectPreset = useCallback(
+   128→   128→    (value: number) => {
+   129→   129→      setAmount(value);
+   130→   130→      setCustomInput("");
+   131→   131→      setAmountError("");
+   132→   132→    },
+   133→   133→    [setAmount]
+   134→   134→  );
+   135→   135→
+   136→   136→  const handleCustomChange = useCallback(
+   137→   137→    (e: React.ChangeEvent<HTMLInputElement>) => {
+   138→   138→      const raw = e.target.value;
+   139→   139→      setCustomInput(raw);
+   140→   140→      setAmountError("");
+   141→   141→      const num = parseInt(raw, 10);
+   142→   142→      if (raw.length > 0 && !isNaN(num)) {
+   143→   143→        setAmount(num);
+   144→   144→      } else {
+   145→   145→        setAmount(null);
+   146→   146→      }
+   147→   147→    },
+   148→   148→    [setAmount]
+   149→   149→  );
+   150→   150→
+   151→   151→  const handleProceed = () => {
+   152→   152→    if (amount === null || amount < 100) {
+   153→   153→      setAmountError(
+   154→   154→        "क्षमा करें, कृपया \u20B9100 या उससे अधिक की दान राशि दर्ज करें।"
+   155→   155→      );
+   156→   156→      return;
+   157→   157→    }
+   158→   158→    onProceed();
+   159→   159→  };
+   160→   160→
+   161→   161→  const isPreset = (value: number) => amount === value && customInput === "";
+   162→   162→  const canProceed = amount !== null && amount >= 100;
+   163→   163→
+   164→   164→  return (
+   165→   165→    <div>
+   166→   166→      <h1 className="text-xl sm:text-2xl font-bold text-deep-warm-brown text-center leading-relaxed">
+   167→   167→        मंदिर निर्माण हेतु दान करें
+   168→   168→      </h1>
+   169→   169→      <p className="text-sm text-muted-brown text-center mt-2 leading-relaxed">
+   170→   170→        आपकी श्रद्धा और सहयोग इस पावन मंदिर निर्माण कार्य में महत्वपूर्ण योगदान है।
+   171→   171→      </p>
+   172→   172→
+   173→   173→      <OrnamentalDivider />
+   174→   174→
+   175→   175→      <p className="text-center text-elegant-orange font-semibold text-base sm:text-lg tracking-wide">
+   176→   176→        कृष्णकुंज माँ कर्मा धाम
+   177→   177→      </p>
+   178→   178→
+   179→   179→      {/* Preset Amount Buttons */}
+   180→   180→      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-6">
+   181→   181→        {PRESET_AMOUNTS.map((value) => (
+   182→   182→          <button
+   183→   183→            key={value}
+   184→   184→            type="button"
+   185→   185→            onClick={() => selectPreset(value)}
+   186→   186→            className={`
+   187→   187→              rounded-full border-2 py-3 text-base sm:text-lg font-semibold transition-all duration-200
+   188→   188→              ${
+   189→   189→                isPreset(value)
+   190→   190→                  ? "bg-elegant-orange text-warm-white border-elegant-orange shadow-md"
+   191→   191→                  : "bg-warm-white text-deep-warm-brown border-light-gold hover:bg-elegant-orange hover:text-warm-white hover:border-elegant-orange"
+   192→   192→              }
+   193→   193→            `}
+   194→   194→          >
+   195→   195→            {formatCurrency(value)}
+   196→   196→          </button>
+   197→   197→        ))}
+   198→   198→      </div>
+   199→   199→
+   200→   200→      {/* Custom Amount Input */}
+   201→   201→      <div className="mt-6">
+   202→   202→        <label
+   203→   203→          htmlFor="custom-amount"
+   204→   204→          className="block text-sm font-medium text-muted-brown mb-2"
+   205→   205→        >
+   206→   206→          अपनी दान राशि दर्ज करें
+   207→   207→        </label>
+   208→   208→        <div className="relative">
+   209→   209→          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-brown text-base font-medium">
+   210→   210→            ₹
+   211→   211→          </span>
+   212→   212→          <input
+   213→   213→            id="custom-amount"
+   214→   214→            type="number"
+   215→   215→            min={100}
+   216→   216→            placeholder="₹100 से अधिक"
+   217→   217→            value={customInput}
+   218→   218→            onChange={handleCustomChange}
+   219→   219→            className="
+   220→   220→              w-full rounded-xl border-2 border-light-beige bg-warm-white text-deep-warm-brown
+   221→   221→              placeholder:text-muted-brown/60
+   222→   222→              focus:border-soft-saffron focus:outline-none focus:ring-2 focus:ring-soft-saffron/30
+   223→   223→              pl-8 pr-4 py-3 text-base
+   224→   224→              [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+   225→   225→            "
+   226→   226→          />
+   227→   227→        </div>
+   228→   228→      </div>
+   229→   229→
+   230→   230→      {/* Error Message */}
+   231→   231→      {amountError && (
+   232→   232→        <p className="mt-3 text-sm text-deep-maroon text-center font-medium">
+   233→   233→          {amountError}
+   234→   234→        </p>
+   235→   235→      )}
+   236→   236→
+   237→   237→      {/* Proceed Button */}
+   238→   238→      <button
+   239→   239→        type="button"
+   240→   240→        onClick={handleProceed}
+   241→   241→        disabled={!canProceed}
+   242→   242→        className={`
+   243→   243→          mt-6 w-full rounded-full py-3.5 text-base font-semibold transition-all duration-200
+   244→   244→          ${
+   245→   245→            canProceed
+   246→   246→              ? "bg-elegant-orange text-warm-white hover:bg-soft-saffron shadow-md active:scale-[0.98]"
+   247→   247→              : "bg-light-beige text-muted-brown/50 cursor-not-allowed"
+   248→   248→          }
+   249→   249→        `}
+   250→   250→      >
+   251→   251→        आगे बढ़ें
+   252→   252→      </button>
+   253→   253→    </div>
+   254→   254→  );
+   255→   255→}
+   256→   256→
+   257→   257→// ---------------------------------------------------------------------------
+   258→   258→// Step 2: Donor Details
+   259→   259→// ---------------------------------------------------------------------------
+   260→   260→
+   261→   261→function StepDetails({
+   262→   262→  amount,
+   263→   263→  donorData,
+   264→   264→  setDonorData,
+   265→   265→  errors,
+   266→   266→  setErrors,
+   267→   267→  onBack,
+   268→   268→  onProceed,
+   269→   269→}: {
+   270→   270→  amount: number;
+   271→   271→  donorData: DonorData;
+   272→   272→  setDonorData: React.Dispatch<React.SetStateAction<DonorData>>;
+   273→   273→  errors: FieldErrors;
+   274→   274→  setErrors: React.Dispatch<React.SetStateAction<FieldErrors>>;
+   275→   275→  onBack: () => void;
+   276→   276→  onProceed: () => void;
+   277→   277→}) {
+   278→   278→  const [consent, setConsent] = useState(false);
+   279→   279→
+   280→   280→  const updateField = (field: keyof DonorData, value: string) => {
+   281→   281→    setDonorData((prev) => ({ ...prev, [field]: value }));
+   282→   282→    // Clear field error on change
+   283→   283→    if (field === "donorName" || field === "mobile" || field === "address") {
+   284→   284→      setErrors((prev) => ({ ...prev, [field]: undefined }));
+   285→   285→    }
+   286→   286→  };
+   287→   287→
+   288→   288→  const handleProceed = () => {
+   289→   289→    const newErrors: FieldErrors = {};
+   290→   290→    const nameErr = validateName(donorData.donorName);
+   291→   291→    if (nameErr) newErrors.donorName = nameErr;
+   292→   292→
+   293→   293→    const mobileErr = validateMobile(donorData.mobile);
+   294→   294→    if (mobileErr) newErrors.mobile = mobileErr;
+   295→   295→
+   296→   296→    if (!donorData.address.trim()) {
+   297→   297→      newErrors.address = "कृपया अपना पता दर्ज करें।";
+   298→   298→    }
+   299→   299→
+   300→   300→    if (!consent) {
+   301→   301→      newErrors.consent = "कृपया ऊपर दिए गए कथन पर सहमति दें।";
+   302→   302→    }
+   303→   303→
+   304→   304→    if (Object.keys(newErrors).length > 0) {
+   305→   305→      setErrors(newErrors);
+   306→   306→      return;
+   307→   307→    }
+   308→   308→
+   309→   309→    onProceed();
+   310→   310→  };
+   311→   311→
+   312→   312→  const inputClass = `
+   313→   313→    w-full rounded-xl border-2 border-light-beige bg-warm-white text-deep-warm-brown
+   314→   314→    placeholder:text-muted-brown/50
+   315→   315→    focus:border-soft-saffron focus:outline-none focus:ring-2 focus:ring-soft-saffron/30
+   316→   316→    px-4 py-3 text-base transition-colors
+   317→   317→  `;
+   318→   318→
+   319→   319→  const labelClass = "block text-sm font-medium text-muted-brown mb-1.5";
+   320→   320→  const errorClass = "text-sm text-deep-maroon mt-1";
+   321→   321→  const requiredMark = <span className="text-deep-maroon">*</span>;
+   322→   322→
+   323→   323→  return (
+   324→   324→    <div>
+   325→   325→      {/* Amount Display */}
+   326→   326→      <div className="text-center mb-6">
+   327→   327→        <p className="text-sm text-muted-brown mb-1">आपका दान</p>
+   328→   328→        <p className="text-3xl sm:text-4xl font-bold text-elegant-orange">
+   329→   329→          ₹{formatCurrency(amount)}
+   330→   330→        </p>
+   331→   331→      </div>
+   332→   332→
+   333→   333→      <OrnamentalDivider />
+   334→   334→
+   335→   335→      {/* Required Fields */}
+   336→   336→      <div className="space-y-4 mt-4">
+   337→   337→        <div>
+   338→   338→          <label htmlFor="donorName" className={labelClass}>
+   339→   339→            पूरा नाम{requiredMark}
+   340→   340→          </label>
+   341→   341→          <input
+   342→   342→            id="donorName"
+   343→   343→            type="text"
+   344→   344→            placeholder="अपना पूरा नाम लिखें"
+   345→   345→            value={donorData.donorName}
+   346→   346→            onChange={(e) => updateField("donorName", e.target.value)}
+   347→   347→            className={`${inputClass} ${errors.donorName ? "border-deep-maroon" : ""}`}
+   348→   348→          />
+   349→   349→          {errors.donorName && <p className={errorClass}>{errors.donorName}</p>}
+   350→   350→        </div>
+   351→   351→
+   352→   352→        <div>
+   353→   353→          <label htmlFor="mobile" className={labelClass}>
+   354→   354→            मोबाइल नंबर{requiredMark}
+   355→   355→          </label>
+   356→   356→          <input
+   357→   357→            id="mobile"
+   358→   358→            type="tel"
+   359→   359→            maxLength={10}
+   360→   360→            placeholder="10 अंकों का मोबाइल नंबर"
+   361→   361→            value={donorData.mobile}
+   362→   362→            onChange={(e) => {
+   363→   363→              const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+   364→   364→              updateField("mobile", digits);
+   365→   365→            }}
+   366→   366→            className={`${inputClass} ${errors.mobile ? "border-deep-maroon" : ""}`}
+   367→   367→          />
+   368→   368→          {errors.mobile && <p className={errorClass}>{errors.mobile}</p>}
+   369→   369→        </div>
+   370→   370→
+   371→   371→        {/* Address — Required */}
+   372→   372→        <div>
+   373→   373→          <label htmlFor="address" className={labelClass}>
+   374→   374→            पता{requiredMark}
+   375→   375→          </label>
+   376→   376→          <input
+   377→   377→            id="address"
+   378→   378→            type="text"
+   379→   379→            placeholder="मकान नंबर, गली / मोहल्ला"
+   380→   380→            value={donorData.address}
+   381→   381→            onChange={(e) => updateField("address", e.target.value)}
+   382→   382→            className={`${inputClass} ${errors.address ? "border-deep-maroon" : ""}`}
+   383→   383→          />
+   384→   384→          {errors.address && <p className={errorClass}>{errors.address}</p>}
+   385→   385→        </div>
+   386→   386→
+   387→   387→
+   388→   388→      </div>
+   389→   389→
+   390→   390→      {/* Consent Checkbox */}
+   391→   391→      <div className="mt-6 flex items-start gap-3">
+   392→   392→        <Checkbox
+   393→   393→          id="consent"
+   394→   394→          checked={consent}
+   395→   395→          onCheckedChange={(checked) => {
+   396→   396→            setConsent(checked === true);
+   397→   397→            if (checked === true) {
+   398→   398→              setErrors((prev) => ({ ...prev, consent: undefined }));
+   399→   399→            }
+   400→   400→          }}
+   401→   401→          className="mt-0.5 data-[state=checked]:bg-elegant-orange data-[state=checked]:border-elegant-orange"
+   402→   402→        />
+   403→   403→        <label
+   404→   404→          htmlFor="consent"
+   405→   405→          className="text-sm text-deep-warm-brown leading-relaxed cursor-pointer select-none"
+   406→   406→        >
+   407→   407→          मैं मंदिर निर्माण हेतु अपनी श्रद्धानुसार दान कर रहा/रही हूँ।
+   408→   408→        </label>
+   409→   409→      </div>
+   410→   410→      {errors.consent && (
+   411→   411→        <p className={errorClass}>{errors.consent}</p>
+   412→   412→      )}
+   413→   413→
+   414→   414→      {/* Buttons */}
+   415→   415→      <div className="flex gap-3 mt-8">
+   416→   416→        <button
+   417→   417→          type="button"
+   418→   418→          onClick={onBack}
+   419→   419→          className="
+   420→   420→            flex-1 rounded-full border-2 border-light-gold py-3.5 text-base font-semibold
+   421→   421→            text-deep-warm-brown bg-warm-white hover:bg-warm-ivory transition-all duration-200
+   422→   422→            active:scale-[0.98]
+   423→   423→          "
+   424→   424→        >
+   425→   425→          वापस जाएं
+   426→   426→        </button>
+   427→   427→        <button
+   428→   428→          type="button"
+   429→   429→          onClick={handleProceed}
+   430→   430→          className="
+   431→   431→            flex-[2] rounded-full py-3.5 text-base font-semibold transition-all duration-200
+   432→   432→            bg-elegant-orange text-warm-white hover:bg-soft-saffron shadow-md active:scale-[0.98]
+   433→   433→          "
+   434→   434→        >
+   435→   435→          भुगतान के लिए आगे बढ़ें
+   436→   436→        </button>
+   437→   437→      </div>
+   438→   438→    </div>
+   439→   439→  );
+   440→   440→}
+   441→   441→
+   442→   442→// ---------------------------------------------------------------------------
+   443→   443→// Step 3: Payment Summary + QR
+   444→   444→// ---------------------------------------------------------------------------
+   445→   445→
+   446→   446→function StepPayment({
+   447→   447→  amount,
+   448→   448→  donorData,
+   449→   449→  existingOrderId,
+   450→   450→  onBack,
+   451→   451→  onSuccess,
+   452→   452→}: {
+   453→   453→  amount: number;
+   454→   454→  donorData: DonorData;
+   455→   455→  existingOrderId: string;
+   456→   456→  onBack: () => void;
+   457→   457→  onSuccess: (orderId: string) => void;
+   458→   458→}) {
+   459→   459→  const [loading, setLoading] = useState(!existingOrderId);
+   460→   460→  const [orderError, setOrderError] = useState("");
+   461→   461→  const [orderId, setOrderId] = useState<string | null>(existingOrderId || null);
+   462→   462→  const [upiLink, setUpiLink] = useState("");
+   463→   463→  const [qrDataUrl, setQrDataUrl] = useState("");
+   464→   464→  const [confirming, setConfirming] = useState(false);
+   465→   465→
+   466→   466→  // Create order & QR on mount (skip if already created)
+   467→   467→  useEffect(() => {
+   468→   468→    let cancelled = false;
+   469→   469→
+   470→   470→    async function init() {
+   471→   471→      try {
+   472→   472→        let link = '';
+   473→   473→
+   474→   474→        if (existingOrderId) {
+   475→   475→          const params = new URLSearchParams({
+   476→   476→            pa: 'sahubhagwat392@indianbk',
+   477→   477→            pn: 'कृष्णकुंज माँ कर्मा धाम',
+   478→   478→            am: String(amount),
+   479→   479→            cu: 'INR',
+   480→   480→            tn: `मंदिर निर्माण दान - ₹${amount}`,
+   481→   481→          });
+   482→   482→          link = `upi://pay?${params.toString()}`;
+   483→   483→          setUpiLink(link);
+   484→   484→        } else {
+   485→   485→          const res = await fetch('/api/donate/create-order', {
+   486→   486→            method: 'POST',
+   487→   487→            headers: { 'Content-Type': 'application/json' },
+   488→   488→            body: JSON.stringify({
+   489→   489→              amount,
+   490→   490→              donorName: donorData.donorName.trim(),
+   491→   491→              mobile: donorData.mobile,
+   492→   492→              address: donorData.address.trim() || undefined,
+   493→   493→            }),
+   494→   494→          });
+   495→   495→          const data = await res.json();
+   496→   496→          if (cancelled) return;
+   497→   497→          if (!data.success) {
+   498→   498→            setOrderError(data.error || 'दान आदेश बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+   499→   499→            setLoading(false);
+   500→   500→            return;
+   501→   501→          }
+   502→   502→          setOrderId(data.orderId);
+   503→   503→          link = data.upiLink;
+   504→   504→          setUpiLink(link);
+   505→   505→        }
+   506→   506→
+   507→   507→        // Generate QR code with exact amount
+   508→   508→        const QRCode = await import('qrcode');
+   509→   509→        const qrUrl = await QRCode.toDataURL(link, {
+   510→   510→          width: 280,
+   511→   511→          margin: 2,
+   512→   512→          color: { dark: '#5A3A24', light: '#FFFFFF' },
+   513→   513→        });
+   514→   514→        if (!cancelled) {
+   515→   515→          setQrDataUrl(qrUrl);
+   516→   516→          setLoading(false);
+   517→   517→        }
+   518→   518→      } catch {
+   519→   519→        if (!cancelled) {
+   520→   520→          setOrderError('भुगतान पृष्ठ लोड करने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+   521→   521→          setLoading(false);
+   522→   522→        }
+   523→   523→      }
+   524→   524→    }
+   525→   525→
+   526→   526→    init();
+   527→   527→    return () => { cancelled = true; };
+   528→   528→  // eslint-disable-next-line react-hooks/exhaustive-deps
+   529→   529→  }, []);
+   530→   530→
+   531→   531→  const handleConfirmPayment = async () => {
+   532→   532→    if (!orderId) return;
+   533→   533→    setConfirming(true);
+   534→   534→    try {
+   535→   535→      await fetch("/api/donate/confirm-payment", {
+   536→   536→        method: "POST",
+   537→   537→        headers: { "Content-Type": "application/json" },
+   538→   538→        body: JSON.stringify({ orderId }),
+   539→   539→      });
+   540→   540→      onSuccess(orderId);
+   541→   541→    } catch {
+   542→   542→      setConfirming(false);
+   543→   543→    }
+   544→   544→  };
+   545→   545→
+   546→   546→  if (loading) {
+   547→   547→    return (
+   548→   548→      <div className="flex flex-col items-center justify-center py-16">
+   549→   549→        <div
+   550→   550→          className="w-10 h-10 border-4 border-light-beige border-t-elegant-orange rounded-full animate-spin"
+   551→   551→        />
+   552→   552→        <p className="mt-4 text-sm text-muted-brown">भुगतान पृष्ठ तैयार हो रहा है...</p>
+   553→   553→      </div>
+   554→   554→    );
+   555→   555→  }
+   556→   556→
+   557→   557→  if (orderError) {
+   558→   558→    return (
+   559→   559→      <div>
+   560→   560→        <div className="text-center py-8">
+   561→   561→          <p className="text-deep-maroon text-sm font-medium">{orderError}</p>
+   562→   562→        </div>
+   563→   563→        <button
+   564→   564→          type="button"
+   565→   565→          onClick={onBack}
+   566→   566→          className="
+   567→   567→            w-full rounded-full border-2 border-light-gold py-3.5 text-base font-semibold
+   568→   568→            text-deep-warm-brown bg-warm-white hover:bg-warm-ivory transition-all duration-200
+   569→   569→            active:scale-[0.98]
+   570→   570→          "
+   571→   571→        >
+   572→   572→          वापस जाएं
+   573→   573→        </button>
+   574→   574→      </div>
+   575→   575→    );
+   576→   576→  }
+   577→   577→
+   578→   578→  return (
+   579→   579→    <div>
+   580→   580→      {/* Summary */}
+   581→   581→      <div className="rounded-2xl border-2 border-light-beige bg-warm-white p-4 sm:p-5 mb-6">
+   582→   582→        <h2 className="text-base font-semibold text-deep-warm-brown mb-3">
+   583→   583→          दान विवरण
+   584→   584→        </h2>
+   585→   585→        <div className="space-y-2 text-sm">
+   586→   586→          <div className="flex justify-between">
+   587→   587→            <span className="text-muted-brown">मंदिर</span>
+   588→   588→            <span className="text-deep-warm-brown font-medium">
+   589→   589→              कृष्णकुंज माँ कर्मा धाम
+   590→   590→            </span>
+   591→   591→          </div>
+   592→   592→          <div className="flex justify-between">
+   593→   593→            <span className="text-muted-brown">दानदाता</span>
+   594→   594→            <span className="text-deep-warm-brown font-medium">
+   595→   595→              {donorData.donorName}
+   596→   596→            </span>
+   597→   597→          </div>
+   598→   598→          <div className="h-px bg-light-beige my-2" />
+   599→   599→          <div className="flex justify-between items-center">
+   600→   600→            <span className="text-muted-brown">दान राशि</span>
+   601→   601→            <span className="text-elegant-orange font-bold text-lg">
+   602→   602→              ₹{formatCurrency(amount)}
+   603→   603→            </span>
+   604→   604→          </div>
+   605→   605→        </div>
+   606→   606→      </div>
+   607→   607→
+   608→   608→      {/* QR Code Card */}
+   609→   609→      <div className="rounded-2xl border-2 border-light-gold bg-warm-white p-5 sm:p-6 text-center">
+   610→   610→        <p className="text-base sm:text-lg font-semibold text-deep-warm-brown mb-1">
+   611→   611→          UPI QR कोड स्कैन करें
+   612→   612→        </p>
+   613→   613→        <p className="text-sm text-elegant-orange font-semibold mb-4">
+   614→   614→          ₹{formatCurrency(amount)} का दान करें
+   615→   615→        </p>
+   616→   616→
+   617→   617→        {qrDataUrl && (
+   618→   618→          <div className="inline-block p-3 rounded-2xl border-2 border-light-gold bg-warm-white shadow-sm">
+   619→   619→            <img
+   620→   620→              src={qrDataUrl}
+   621→   621→              alt={`UPI QR - ₹${formatCurrency(amount)} दान करें`}
+   622→   622→              width={240}
+   623→   623→              height={240}
+   624→   624→              className="w-52 h-52 sm:w-60 sm:h-60 mx-auto"
+   625→   625→            />
+   626→   626→          </div>
+   627→   627→        )}
+   628→   628→
+   629→   629→        <p className="text-xs text-muted-brown mt-3 leading-relaxed">
+   630→   630→          किसी भी UPI ऐप से स्कैन करें — ₹{formatCurrency(amount)} ऑटो-भर जाएगा<br/>
+   631→   631→          <span className="font-semibold text-deep-warm-brown">UPI ID: sahubhagwat392@indianbk</span>
+   632→   632→        </p>
+   633→   633→      </div>
+   634→   634→
+   635→   635→      {/* UPI Pay Button */}
+   636→   636→      <a
+   637→   637→        href={upiLink}
+   638→   638→        className="
+   639→   639→          mt-5 w-full flex items-center justify-center rounded-full py-3.5 text-base font-semibold
+   640→   640→          bg-elegant-orange text-warm-white hover:bg-soft-saffron shadow-md transition-all duration-200
+   641→   641→          active:scale-[0.98]
+   642→   642→        "
+   643→   643→      >
+   644→   644→        UPI से भुगतान करें
+   645→   645→      </a>
+   646→   646→
+   647→   647→      {/* Confirm Payment Button */}
+   648→   648→      <button
+   649→   649→        type="button"
+   650→   650→        onClick={handleConfirmPayment}
+   651→   651→        disabled={confirming}
+   652→   652→        className={`
+   653→   653→          mt-3 w-full rounded-full py-3.5 text-base font-semibold transition-all duration-200
+   654→   654→          ${
+   655→   655→            confirming
+   656→   656→              ? "bg-light-beige text-muted-brown/50 cursor-not-allowed"
+   657→   657→              : "border-2 border-elegant-orange text-elegant-orange bg-warm-white hover:bg-warm-ivory active:scale-[0.98]"
+   658→   658→          }
+   659→   659→        `}
+   660→   660→      >
+   661→   661→        {confirming ? "सत्यापित हो रहा है..." : "मैंने भुगतान कर दिया"}
+   662→   662→      </button>
+   663→   663→
+   664→   664→      {/* Back Button */}
+   665→   665→      <button
+   666→   666→        type="button"
+   667→   667→        onClick={onBack}
+   668→   668→        className="
+   669→   669→          mt-3 w-full rounded-full border-2 border-light-beige py-3 text-sm font-medium
+   670→   670→          text-muted-brown bg-warm-white hover:bg-warm-ivory transition-all duration-200
+   671→   671→        "
+   672→   672→      >
+   673→   673→        वापस जाएं
+   674→   674→      </button>
+   675→   675→    </div>
+   676→   676→  );
+   677→   677→}
+   678→   678→
+   679→   679→// ---------------------------------------------------------------------------
+   680→   680→// Step 4: Awaiting Verification (NO auto SUCCESS, NO redirect)
+   681→   681→// ---------------------------------------------------------------------------
+   682→   682→
+   683→   683→function StepAwaitingVerification() {
+   684→   684→  return (
+   685→   685→    <div className="flex flex-col items-center justify-center py-12 px-4">
+   686→   686→      <div
+   687→   687→        className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
+   688→   688→        style={{ backgroundColor: '#FFF3E0' }}
+   689→   689→      >
+   690→   690→        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#E88A24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+   691→   691→          <circle cx="12" cy="12" r="10" />
+   692→   692→          <polyline points="12 6 12 12 16 14" />
+   693→   693→        </svg>
+   694→   694→      </div>
+   695→   695→
+   696→   696→      <h2 className="text-xl font-bold text-deep-warm-brown text-center mb-3">
+   697→   697→        आपके भुगतान की पुष्टि की प्रतीक्षा है
+   698→   698→      </h2>
+   699→   699→
+   700→   700→      <p className="text-sm text-muted-brown text-center max-w-sm leading-relaxed mb-6">
+   701→   701→        आपका दान दर्ज कर लिया गया है। भुगतान सत्यापित होने के बाद
+   702→   702→        एडमिन द्वारा रसीद जारी की जाएगी।
+   703→   703→      </p>
+   704→   704→
+   705→   705→      <div
+   706→   706→        className="rounded-xl p-4 mb-6 w-full max-w-sm"
+   707→   707→        style={{ backgroundColor: '#FFF9ED', border: '1px solid #D6AE5C' }}
+   708→   708→      >
+   709→   709→        <p className="text-xs text-muted-brown text-center leading-relaxed">
+   710→   710→          यदि भुगतान सफल रहा हो तो रसीद कुछ समय में उपलब्ध होगी।
+   711→   711→          किसी भी पूछताछ के लिए संपर्क पृष्ठ पर जाएं।
+   712→   712→        </p>
+   713→   713→      </div>
+   714→   714→
+   715→   715→      <a
+   716→   716→        href="/"
+   717→   717→        className="
+   718→   718→          rounded-full px-8 py-3 text-base font-semibold transition-all duration-200
+   719→   719→          bg-elegant-orange text-warm-white hover:bg-soft-saffron shadow-md active:scale-[0.98]
+   720→   720→        "
+   721→   721→      >
+   722→   722→        मुख्यपृष्ठ पर जाएं
+   723→   723→      </a>
+   724→   724→    </div>
+   725→   725→  );
+   726→   726→}
+   727→   727→
+   728→   728→// ---------------------------------------------------------------------------
+   729→   729→// Main Page
+   730→   730→// ---------------------------------------------------------------------------
+   731→   731→
+   732→   732→export default function DonatePage() {
+   733→   733→  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+   734→   734→  const [amount, setAmount] = useState<number | null>(null);
+   735→   735→  const [donorData, setDonorData] = useState<DonorData>(INITIAL_DONOR);
+   736→   736→  const [errors, setErrors] = useState<FieldErrors>({});
+   737→   737→  const [orderId, setOrderId] = useState("");
+   738→   738→
+   739→   739→  return (
+   740→   740→    <div className="max-w-lg mx-auto px-4 py-6 sm:py-10">
+   741→   741→      <StepIndicator currentStep={step} />
+   742→   742→
+   743→   743→      {step === 1 && (
+   744→   744→        <StepAmount
+   745→   745→          amount={amount}
+   746→   746→          setAmount={setAmount}
+   747→   747→          onProceed={() => setStep(2)}
+   748→   748→        />
+   749→   749→      )}
+   750→   750→
+   751→   751→      {step === 2 && amount && (
+   752→   752→        <StepDetails
+   753→   753→          amount={amount}
+   754→   754→          donorData={donorData}
+   755→   755→          setDonorData={setDonorData}
+   756→   756→          errors={errors}
+   757→   757→          setErrors={setErrors}
+   758→   758→          onBack={() => setStep(1)}
+   759→   759→          onProceed={() => setStep(3)}
+   760→   760→        />
+   761→   761→      )}
+   762→   762→
+   763→   763→      {step === 3 && amount && (
+   764→   764→        <StepPayment
+   765→   765→          amount={amount}
+   766→   766→          donorData={donorData}
+   767→   767→          existingOrderId={orderId}
+   768→   768→          onBack={() => setStep(2)}
+   769→   769→          onSuccess={(id) => {
+   770→   770→            setOrderId(id);
+   771→   771→            setStep(4);
+   772→   772→          }}
+   773→   773→        />
+   774→   774→      )}
+   775→   775→
+   776→   776→      {step === 4 && <StepAwaitingVerification />}
+   777→   777→    </div>
+   778→   778→  );
+   779→   779→}
+   780→   780→

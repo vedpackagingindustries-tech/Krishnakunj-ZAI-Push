@@ -28,7 +28,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Search, Download, Eye, ChevronLeft, ChevronRight, Filter, X } from 'lucide-react'
+import { Search, Download, Eye, ChevronLeft, ChevronRight, Filter, X, CheckCircle, XCircle, RefreshCw } from 'lucide-react'
 
 // ── Types ───────────────────────────────────────────
 
@@ -153,12 +153,72 @@ function DonationDetailDialog({
   donation,
   open,
   onOpenChange,
+  onVerified,
 }: {
   donation: Donation | null
   open: boolean
   onOpenChange: (open: boolean) => void
+  onVerified?: () => void
 }) {
+  const [txnId, setTxnId] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionMsg, setActionMsg] = useState('')
+  const [actionError, setActionError] = useState('')
+
   if (!donation) return null
+
+  const canVerify = donation.paymentStatus === 'PENDING' || donation.paymentStatus === 'PROCESSING'
+  const canReject = donation.paymentStatus !== 'SUCCESS'
+
+  const handleVerify = async () => {
+    setActionLoading(true)
+    setActionMsg('')
+    setActionError('')
+    try {
+      const res = await fetchAdmin<{ success: boolean; message?: string; error?: string }>(
+        `/api/admin/donations/${donation.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'verify', transactionId: txnId.trim() || undefined }),
+        }
+      )
+      if (res.success) {
+        setActionMsg(res.message || 'सफलतापूर्वक सत्यापित।')
+        onVerified?.()
+      } else {
+        setActionError(res.error || 'त्रुटि।')
+      }
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? e.message : 'त्रुटि हुई।')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    setActionLoading(true)
+    setActionMsg('')
+    setActionError('')
+    try {
+      const res = await fetchAdmin<{ success: boolean; message?: string; error?: string }>(
+        `/api/admin/donations/${donation.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'reject' }),
+        }
+      )
+      if (res.success) {
+        setActionMsg(res.message || 'अस्वीकार किया गया।')
+        onVerified?.()
+      } else {
+        setActionError(res.error || 'त्रुटि।')
+      }
+    } catch (e: unknown) {
+      setActionError(e instanceof Error ? e.message : 'त्रुटि हुई।')
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   const details = [
     { label: 'पावती क्रमांक', value: donation.receiptNumber },
@@ -200,6 +260,69 @@ function DonationDetailDialog({
             </div>
           ))}
         </div>
+
+        {/* ── Admin Verification Actions ── */}
+        {canVerify && (
+          <div className="mt-4 pt-4 border-t border-light-beige space-y-3">
+            <p className="text-sm font-semibold text-deep-warm-brown">भुगतान सत्यापन</p>
+            <div>
+              <label htmlFor="txn-id-input" className="text-xs font-medium text-muted-brown block mb-1">
+                Transaction / Reference ID (वैकल्पिक)
+              </label>
+              <Input
+                id="txn-id-input"
+                placeholder="बैंक Transaction ID दर्ज करें"
+                value={txnId}
+                onChange={(e) => setTxnId(e.target.value)}
+                className="border-light-beige text-deep-warm-brown text-sm"
+                maxLength={100}
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleVerify}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                )}
+                सत्यापित (SUCCESS)
+              </Button>
+              {canReject && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                  onClick={handleReject}
+                  disabled={actionLoading}
+                >
+                  <XCircle className="h-4 w-4 mr-1" />
+                  अस्वीकार (FAILED)
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {donation.paymentStatus === 'SUCCESS' && (
+          <div className="mt-4 pt-3 border-t border-light-beige">
+            <p className="text-xs text-green-700 font-medium flex items-center gap-1">
+              <CheckCircle className="h-3.5 w-3.5" />
+              यह दान पहले ही सत्यापित हो चुका है।
+            </p>
+          </div>
+        )}
+
+        {actionMsg && (
+          <p className="mt-2 text-xs text-green-700 font-medium">{actionMsg}</p>
+        )}
+        {actionError && (
+          <p className="mt-2 text-xs text-red-600 font-medium">{actionError}</p>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -700,6 +823,7 @@ export default function DonationsPage() {
         donation={selectedDonation}
         open={detailOpen}
         onOpenChange={setDetailOpen}
+        onVerified={() => { fetchDonations(); setDetailOpen(false); setSelectedDonation(null); }}
       />
     </div>
   )

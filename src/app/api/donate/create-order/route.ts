@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createPaymentOrder } from '@/lib/payment';
+import { createPaymentOrder, buildUpiLink } from '@/lib/payment';
 import { db, isDbAvailable } from '@/lib/db';
 
 // ---------------------------------------------------------------------------
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
             orderId: existing.paymentOrderId,
             receiptNumber: existing.receiptNumber,
             amount: existing.amount,
-            upiLink: `upi://pay?pa=sahubhagwat392@indianbk&pn=${encodeURIComponent('कृष्णकुंज माँ कर्मा धाम')}&am=${existing.amount}&cu=INR&tn=${encodeURIComponent(`मंदिर निर्माण दान - ${existing.receiptNumber}`)}`,
+            upiLink: buildUpiLink(existing.amount, existing.receiptNumber),
           });
         }
       } catch {

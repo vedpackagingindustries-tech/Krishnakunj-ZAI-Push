@@ -2,6 +2,7 @@ export {
   createPaymentOrder,
   verifyPayment,
   getPaymentStatus,
+  buildUpiLink,
 } from './service';
 
 export type {
