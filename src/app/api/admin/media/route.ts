@@ -75,10 +75,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const trimmedUrl = url.trim()
+    if (!trimmedUrl.startsWith('/uploads/') && !trimmedUrl.startsWith('https://')) {
+      return NextResponse.json(
+        { error: 'अवैध URL। केवल /uploads/ या https:// URL अनुमत हैं।' },
+        { status: 400 }
+      )
+    }
+
     const media = await db.media.create({
       data: {
         type: 'photo',
-        url: url.trim(),
+        url: trimmedUrl,
         thumbnailUrl: thumbnailUrl?.trim() || null,
         title: title?.trim() || '',
         description: description?.trim() || '',

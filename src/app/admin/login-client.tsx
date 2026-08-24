@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 /* ============================================================
    Admin Login Form — client component rendered by /admin
@@ -110,6 +111,9 @@ export default function AdminLoginForm() {
           <button type="submit" disabled={loading} style={{ ...S.submitBtn, opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
             {loading ? 'लॉगिन हो रहा है...' : 'लॉगिन करें'}
           </button>
+          <div className='text-center mt-4'>
+            <Link href='/admin/forgot-password' className='text-sm text-[#C17A2A] hover:underline'>भूल गए पासवर्ड?</Link>
+          </div>
         </form>
       </div>
     </div>

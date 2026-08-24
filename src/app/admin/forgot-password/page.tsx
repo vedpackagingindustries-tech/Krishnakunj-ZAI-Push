@@ -150,14 +150,15 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 8,
     marginBottom: 24,
   },
-  stepDot: (active: boolean, completed: boolean): React.CSSProperties => ({
-    width: 10,
-    height: 10,
-    borderRadius: '50%',
-    backgroundColor: completed ? '#2D5A3D' : active ? '#E88A24' : '#EDE2D0',
-    transition: 'background-color 0.3s',
-  }),
 }
+
+const getStepDotStyle = (active: boolean, completed: boolean): React.CSSProperties => ({
+  width: 10,
+  height: 10,
+  borderRadius: '50%',
+  backgroundColor: completed ? '#2D5A3D' : active ? '#E88A24' : '#EDE2D0',
+  transition: 'background-color 0.3s',
+})
 
 // ---------------------------------------------------------------------------
 // Component
@@ -350,7 +351,7 @@ export default function ForgotPasswordPage() {
             {stepOrder.slice(0, 3).map((s, i) => (
               <div
                 key={s}
-                style={styles.stepDot(
+                style={getStepDotStyle(
                   s === step,
                   i < currentStepIndex
                 )}

@@ -81,10 +81,25 @@ export async function GET(request: NextRequest) {
       orderBy.createdAt = sortOrder as 'asc' | 'desc'
     }
 
-    // ── Fetch all matching donations (no pagination for export) ──
+    // ── Fetch all matching donations (no pagination for export, but capped at 50k) ──
+    const EXPORT_MAX_ROWS = 50000
+
+    // Check unfiltered total for date range requirement
+    const unfilteredTotal = await db.donation.count({ where })
+    if (unfilteredTotal > EXPORT_MAX_ROWS) {
+      // Require date range to narrow down results
+      if (!dateFrom || !dateTo) {
+        return NextResponse.json(
+          { error: `डेटा बहुत अधिक है (${unfilteredTotal} पंक्तियाँ)। कृपया तिथि सीमा निर्दिष्ट करें (अधिकतम 50,000 पंक्तियाँ)।` },
+          { status: 400 }
+        )
+      }
+    }
+
     const donations = await db.donation.findMany({
       where,
       orderBy,
+      take: EXPORT_MAX_ROWS,
     })
 
     // ── CSV generation ──
@@ -101,10 +116,7 @@ export async function GET(request: NextRequest) {
       'मोबाइल',
       'ईमेल',
       'पता',
-      'शहर',
-      'जिला',
-      'राज्य',
-      'पिनकोड',
+      'पिनकोード',
       'राशि (₹)',
       'मुद्रा',
       'भुगतान माध्यम',
@@ -128,9 +140,6 @@ export async function GET(request: NextRequest) {
       escapeCsv(d.mobile),
       escapeCsv(d.email),
       escapeCsv(d.address),
-      escapeCsv(d.city),
-      escapeCsv(d.district),
-      escapeCsv(d.state),
       escapeCsv(d.pincode),
       String(d.amount),
       escapeCsv(d.currency),
@@ -156,8 +165,8 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csvWithBom, {
         status: 200,
         headers: {
-          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="donations_${timestamp}.xlsx"`,
+          'Content-Type': 'application/vnd.ms-excel',
+          'Content-Disposition': `attachment; filename="donations_${timestamp}.csv"`,
         },
       })
     }

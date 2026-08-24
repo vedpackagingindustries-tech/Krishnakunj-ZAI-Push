@@ -108,6 +108,14 @@ export async function DELETE(
     if (existing.url.startsWith('/uploads/')) {
       try {
         const filePath = path.join(process.cwd(), 'public', existing.url)
+
+        // Validate resolved path stays within uploads directory
+        const resolved = path.resolve(filePath)
+        const uploadsDir = path.resolve(path.join(process.cwd(), 'public', 'uploads'))
+        if (!resolved.startsWith(uploadsDir + path.sep) && resolved !== uploadsDir) {
+          return NextResponse.json({ error: 'अवैध फ़ाइल पथ।' }, { status: 400 })
+        }
+
         await unlink(filePath)
       } catch {
         // File might not exist, continue

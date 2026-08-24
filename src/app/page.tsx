@@ -137,13 +137,15 @@ function Section({
   children,
   className = "",
   id,
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
   id?: string;
+  style?: React.CSSProperties;
 }) {
   return (
-    <section id={id} className={`px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 ${className}`}>
+    <section id={id} className={`px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20 ${className}`} style={style}>
       <div className="max-w-5xl mx-auto">{children}</div>
     </section>
   );

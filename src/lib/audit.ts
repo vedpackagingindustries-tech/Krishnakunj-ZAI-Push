@@ -9,6 +9,8 @@ interface FinancialEvent {
   entityType: string;
   entityId: string;
   metadata: Record<string, unknown>;
+  adminId?: string;
+  adminName?: string;
   ipAddress?: string;
 }
 

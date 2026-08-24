@@ -31,6 +31,11 @@ interface DashboardStats {
   successfulDonations: number
   pendingPayments: number
   failedPayments: number
+  pendingAmount: number
+  failedAmount: number
+  cancelledAmount: number
+  refundedAmount: number
+  netReceived: number
 }
 
 interface RecentDonation {
@@ -322,16 +327,34 @@ export default function AdminDashboardPage() {
           iconBg="bg-green-600"
         />
         <StatCard
-          title="Pending Payment"
+          title="लंबित भुगतान"
           value={String(stats?.pendingPayments ?? 0)}
           icon={Clock}
           iconBg="bg-yellow-500"
         />
         <StatCard
-          title="Failed Payment"
+          title="विफल भुगतान"
           value={String(stats?.failedPayments ?? 0)}
           icon={XCircle}
           iconBg="bg-red-500"
+        />
+        <StatCard
+          title="लंबित राशि"
+          value={formatCurrency(stats?.pendingAmount ?? 0)}
+          icon={Clock}
+          iconBg="bg-yellow-600"
+        />
+        <StatCard
+          title="विफल राशि"
+          value={formatCurrency(stats?.failedAmount ?? 0)}
+          icon={XCircle}
+          iconBg="bg-red-600"
+        />
+        <StatCard
+          title="शुद्ध प्राप्ति"
+          value={formatCurrency(stats?.netReceived ?? 0)}
+          icon={TrendingUp}
+          iconBg="bg-green-700"
         />
       </div>
 

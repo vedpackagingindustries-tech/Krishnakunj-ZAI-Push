@@ -12,6 +12,13 @@ const confirmPaymentSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// In-memory rate limit: max 3 confirm-payment requests per orderId
+// ---------------------------------------------------------------------------
+
+const confirmRateMap = new Map<string, number>();
+const CONFIRM_MAX_PER_ORDER = 3;
+
+// ---------------------------------------------------------------------------
 // POST /api/donate/confirm-payment
 //
 // This is called when the donor confirms they have completed the UPI payment.
@@ -39,6 +46,16 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderId, transactionId } = parsed.data;
+
+    // Rate limit: max 3 confirms per orderId
+    const confirmCount = confirmRateMap.get(orderId) || 0;
+    if (confirmCount >= CONFIRM_MAX_PER_ORDER) {
+      return NextResponse.json(
+        { success: false, error: 'इस ऑर्डर के लिए बहुत अधिक अनुरोध। कृपया सहायता से संपर्क करें।' },
+        { status: 429 },
+      );
+    }
+    confirmRateMap.set(orderId, confirmCount + 1);
 
     // Try to update in DB if available
     if (isDbAvailable()) {

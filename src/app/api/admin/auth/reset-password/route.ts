@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 8) {
       return NextResponse.json(
-        { success: false, error: 'पासवर्ड कम से कम 6 अक्षर का होना चाहिए।' },
+        { success: false, error: 'पासवर्ड कम से कम 8 अक्षरों का होना चाहिए।' },
         { status: 400 }
       )
     }
@@ -49,6 +49,12 @@ export async function POST(request: NextRequest) {
     // Check OTP in memory
     const otpResult = verifyOtp(trimmedEmail, otp.trim())
     if (!otpResult.valid) {
+      if (otpResult.locked) {
+        return NextResponse.json(
+          { success: false, error: 'बहुत अधिक गलत प्रयास। कृपया नया OTP प्राप्त करें।' },
+          { status: 429 }
+        )
+      }
       if (otpResult.expired) {
         return NextResponse.json(
           { success: false, error: 'OTP की समय सीमा समाप्त हो गई है। कृपया नया OTP प्राप्त करें।' },

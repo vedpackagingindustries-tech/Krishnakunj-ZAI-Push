@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { db, isDbAvailable } from '@/lib/db'
 import AdminLoginForm from './login-client'
 
+export const dynamic = 'force-dynamic'
+
 /* ============================================================
    Admin Entry Page — SERVER COMPONENT
 

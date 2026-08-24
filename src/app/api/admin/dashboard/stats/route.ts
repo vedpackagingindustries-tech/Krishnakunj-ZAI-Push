@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSession } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,78 +26,100 @@ export async function GET(request: NextRequest) {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const yearStart = new Date(now.getFullYear(), 0, 1)
 
-    const successWhere = { paymentStatus: 'SUCCESS' }
+    // Use aggregate queries instead of findMany to prevent OOM
+    const [
+      todayAgg,
+      totalAgg,
+      monthAgg,
+      yearAgg,
+      totalDonorsGrouped,
+      successfulCount,
+      pendingCount,
+      failedCount,
+      cancelledCount,
+      refundedCount,
+    ] = await Promise.all([
+      db.donation.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: { createdAt: { gte: todayStart }, paymentStatus: 'SUCCESS' },
+      }),
+      db.donation.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: { paymentStatus: 'SUCCESS' },
+      }),
+      db.donation.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: { createdAt: { gte: monthStart }, paymentStatus: 'SUCCESS' },
+      }),
+      db.donation.aggregate({
+        _sum: { amount: true },
+        _count: true,
+        where: { createdAt: { gte: yearStart }, paymentStatus: 'SUCCESS' },
+      }),
+      db.donation.groupBy({
+        by: ['mobile'],
+      }),
+      db.donation.count({ where: { paymentStatus: 'SUCCESS' } }),
+      db.donation.count({ where: { paymentStatus: 'PENDING' } }),
+      db.donation.count({ where: { paymentStatus: 'FAILED' } }),
+      db.donation.count({ where: { paymentStatus: 'CANCELLED' } }),
+      db.donation.count({ where: { paymentStatus: 'REFUNDED' } }),
+    ])
 
-    // Today donations (SUCCESS only for amounts)
-    const todayDonations = await db.donation.findMany({
-      where: {
-        createdAt: { gte: todayStart },
-      },
-      select: { amount: true, paymentStatus: true },
-    })
-    const todaySuccess = todayDonations.filter((d) => d.paymentStatus === 'SUCCESS')
+    // Pending/failed/cancelled/refunded amounts
+    const [pendingAmountAgg, failedAmountAgg, cancelledAmountAgg, refundedAmountAgg] =
+      await Promise.all([
+        db.donation.aggregate({
+          _sum: { amount: true },
+          where: { paymentStatus: 'PENDING' },
+        }),
+        db.donation.aggregate({
+          _sum: { amount: true },
+          where: { paymentStatus: 'FAILED' },
+        }),
+        db.donation.aggregate({
+          _sum: { amount: true },
+          where: { paymentStatus: 'CANCELLED' },
+        }),
+        db.donation.aggregate({
+          _sum: { amount: true },
+          where: { paymentStatus: 'REFUNDED' },
+        }),
+      ])
 
-    // Total donations (SUCCESS only for amounts)
-    const totalDonations = await db.donation.findMany({
-      select: { amount: true, paymentStatus: true },
-    })
-    const totalSuccess = totalDonations.filter((d) => d.paymentStatus === 'SUCCESS')
-
-    // Month donations
-    const monthDonations = await db.donation.findMany({
-      where: {
-        createdAt: { gte: monthStart },
-      },
-      select: { amount: true, paymentStatus: true },
-    })
-    const monthSuccess = monthDonations.filter((d) => d.paymentStatus === 'SUCCESS')
-
-    // Year donations
-    const yearDonations = await db.donation.findMany({
-      where: {
-        createdAt: { gte: yearStart },
-      },
-      select: { amount: true, paymentStatus: true },
-    })
-    const yearSuccess = yearDonations.filter((d) => d.paymentStatus === 'SUCCESS')
-
-    // Total unique donors (by mobile)
-    const totalDonors = await db.donation.groupBy({
-      by: ['mobile'],
-    })
-
-    // Counts by status
-    const successfulCount = await db.donation.count({
-      where: { paymentStatus: 'SUCCESS' },
-    })
-    const pendingCount = await db.donation.count({
-      where: { paymentStatus: 'PENDING' },
-    })
-    const failedCount = await db.donation.count({
-      where: { paymentStatus: 'FAILED' },
-    })
+    const netReceived = (totalAgg._sum.amount || 0) - (refundedAmountAgg._sum.amount || 0)
 
     return NextResponse.json({
       todayDonations: {
-        count: todayDonations.length,
-        amount: todaySuccess.reduce((sum, d) => sum + d.amount, 0),
+        count: todayAgg._count,
+        amount: todayAgg._sum.amount || 0,
       },
       totalDonations: {
-        count: totalDonations.length,
-        amount: totalSuccess.reduce((sum, d) => sum + d.amount, 0),
+        count: totalAgg._count,
+        amount: totalAgg._sum.amount || 0,
       },
       monthDonations: {
-        count: monthDonations.length,
-        amount: monthSuccess.reduce((sum, d) => sum + d.amount, 0),
+        count: monthAgg._count,
+        amount: monthAgg._sum.amount || 0,
       },
       yearDonations: {
-        count: yearDonations.length,
-        amount: yearSuccess.reduce((sum, d) => sum + d.amount, 0),
+        count: yearAgg._count,
+        amount: yearAgg._sum.amount || 0,
       },
-      totalDonors: totalDonors.length,
+      totalDonors: totalDonorsGrouped.length,
       successfulDonations: successfulCount,
       pendingPayments: pendingCount,
       failedPayments: failedCount,
+      cancelledPayments: cancelledCount,
+      refundedPayments: refundedCount,
+      pendingAmount: pendingAmountAgg._sum.amount || 0,
+      failedAmount: failedAmountAgg._sum.amount || 0,
+      cancelledAmount: cancelledAmountAgg._sum.amount || 0,
+      refundedAmount: refundedAmountAgg._sum.amount || 0,
+      netReceived,
     })
   } catch (error) {
     console.error('Dashboard stats error:', error)

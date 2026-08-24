@@ -61,3 +61,5 @@ download/
 *.png
 .zscripts/
 scripts/
+tool-results/
+.zscripts/
