@@ -1,0 +1,184 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════
+//  DONATION SYSTEM
+// ═══════════════════════════════════════════════
+
+model Donation {
+  id                String    @id @default(cuid())
+  receiptNumber     String    @unique
+  donorName         String
+  mobile            String
+  email             String?
+  address           String?
+  pincode           String?
+  idempotencyKey    String?
+  amount            Int
+  currency          String    @default("INR")
+  paymentMethod     String?
+  paymentOrderId    String?   @unique
+  transactionId     String?
+  paymentStatus     String    @default("PENDING")
+  createdAt         DateTime  @default(now())
+  paidAt            DateTime?
+  receiptGeneratedAt DateTime?
+}
+
+// ═══════════════════════════════════════════════
+//  ADMIN SYSTEM
+// ═══════════════════════════════════════════════
+
+model Admin {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  whatsapp      String?
+  role          String   @default("SUPER_ADMIN")
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  auditLogs     AuditLog[]
+  sessions      AdminSession[]
+}
+
+// ═══════════════════════════════════════════════
+//  OFFICIALS (Shared: Footer + Receipt)
+// ═══════════════════════════════════════════════
+
+model OfficialMember {
+  id            String   @id @default(cuid())
+  name          String
+  designation   String
+  phone         String?
+  displayOrder  Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════
+//  CMS CONTENT
+// ═══════════════════════════════════════════════
+
+model CmsContent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @default("")
+  type      String   @default("text") // text, richtext, number, boolean, url
+  label     String   @default("")
+  group     String   @default("") // hero, footer, donation, general, temple
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════
+//  MEDIA (Photos)
+// ═══════════════════════════════════════════════
+
+model Media {
+  id            String   @id @default(cuid())
+  type          String   @default("photo")
+  url           String
+  thumbnailUrl  String?
+  title         String   @default("")
+  description   String   @default("")
+  category      String   @default("")
+  displayOrder  Int      @default(0)
+  isPublished   Boolean  @default(true)
+  isHero        Boolean  @default(false)
+  fileSize      Int?
+  mimeType      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════
+//  VIDEOS
+// ═══════════════════════════════════════════════
+
+model Video {
+  id            String   @id @default(cuid())
+  url           String
+  thumbnailUrl  String?
+  title         String   @default("")
+  description   String   @default("")
+  category      String   @default("")
+  displayOrder  Int      @default(0)
+  isPublished   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════
+//  CONSTRUCTION PROGRESS
+// ═══════════════════════════════════════════════
+
+model ConstructionStage {
+  id            String   @id @default(cuid())
+  label         String
+  description   String   @default("")
+  progress      Int      @default(0)
+  displayOrder  Int      @default(0)
+  isCompleted   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════
+//  WEBSITE SETTINGS
+// ═══════════════════════════════════════════════
+
+model WebsiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @default("")
+ label     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════
+//  AUDIT LOG
+// ═══════════════════════════════════════════════
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  adminId       String?
+  adminName     String   @default("")
+  action        String
+  category      String?   // FINANCIAL, ADMIN
+  entityType    String?   // donation, official, media, video, content, setting, admin
+  entityId      String?
+  metadata      String?   // JSON string
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  admin         Admin?   @relation(fields: [adminId], references: [id], onDelete: SetNull)
+}
+
+// ═══════════════════════════════════════════════
+//  ADMIN SESSIONS (simple token-based)
+// ═══════════════════════════════════════════════
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  adminId   String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
