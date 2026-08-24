@@ -64,7 +64,7 @@ async function generateReceiptNumber(): Promise<string> {
  * that provides a proper order creation API and returns an order_id for verification.
  */
 export function buildUpiLink(amount: number, receiptNumber: string): string {
-  const note = `मंदिर निर्माण दान - ${receiptNumber}`;
+  const note = `मंदिर निर्माण हेतु दान - ${receiptNumber}`;
   const params = new URLSearchParams({
     pa: UPI_ID,
     pn: MERCHANT_NAME,
