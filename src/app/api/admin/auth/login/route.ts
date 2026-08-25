@@ -237,7 +237,8 @@ export async function POST(request: NextRequest) {
         role: admin.role,
       },
     })
-  } catch {
+  } catch (error) {
+    console.error('[login] Error:', error)
     return NextResponse.json(
       { error: 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।' },
       { status: 500 }

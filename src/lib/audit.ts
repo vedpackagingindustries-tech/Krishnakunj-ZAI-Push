@@ -61,8 +61,8 @@ export async function logAdminEvent(event: AdminEvent): Promise<void> {
   try {
     await db.auditLog.create({
       data: {
-        adminId: event.adminId,
-        adminName: event.adminName,
+        adminId: event.adminId || null,
+        adminName: event.adminName || '',
         action: event.action,
         category: 'ADMIN',
         entityType: event.entityType,
