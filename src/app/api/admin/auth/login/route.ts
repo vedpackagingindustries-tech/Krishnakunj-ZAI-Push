@@ -145,20 +145,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Find admin by email
-    const admin = await db.admin.findUnique({
-      where: { email: trimmedEmail },
-    })
+    let admin: Awaited<ReturnType<typeof db.admin.findUnique>> | null = null
+    try {
+      admin = await db.admin.findUnique({
+        where: { email: trimmedEmail },
+      })
+    } catch (dbErr) {
+      console.error('[login] DB findUnique error:', dbErr)
+      // If DB query fails, return 401 (don't leak DB errors to client)
+      recordFailedAttempt(ip)
+      return NextResponse.json(
+        { error: 'ईमेल या पासवर्ड गलत है।' },
+        { status: 401 }
+      )
+    }
 
     if (!admin) {
       recordFailedAttempt(ip)
-      await logAdminEvent({
-        adminId: '',
-        adminName: '',
-        action: 'LOGIN_FAILED',
-        entityType: 'admin',
-        metadata: { reason: 'email_not_found', email: trimmedEmail },
-        ipAddress: ip,
-      })
+      try {
+        await logAdminEvent({
+          adminId: '',
+          adminName: '',
+          action: 'LOGIN_FAILED',
+          entityType: 'admin',
+          metadata: { reason: 'email_not_found', email: trimmedEmail },
+          ipAddress: ip,
+        })
+      } catch {
+        // Audit logging failure should not block login response
+      }
       return NextResponse.json(
         { error: 'ईमेल या पासवर्ड गलत है।' },
         { status: 401 }
