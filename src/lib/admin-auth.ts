@@ -22,7 +22,7 @@ export async function fetchAdmin<T>(
   const token = getAdminToken()
   if (!token) {
     if (typeof window !== 'undefined') {
-      window.location.href = '/admin/login'
+      window.location.href = '/admin'
     }
     throw new Error('अधिकृत नहीं। कृपया लॉगिन करें।')
   }
@@ -43,7 +43,7 @@ export async function fetchAdmin<T>(
   if (response.status === 401) {
     clearAdminToken()
     if (typeof window !== 'undefined') {
-      window.location.href = '/admin/login'
+      window.location.href = '/admin'
     }
     throw new Error('सत्र समाप्त हो गया है। कृपया फिर से लॉगिन करें।')
   }

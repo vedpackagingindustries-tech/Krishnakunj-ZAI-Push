@@ -3,6 +3,8 @@ import { db, isDbAvailable } from '@/lib/db'
 import { logAdminEvent } from '@/lib/audit'
 import { generateOtp, storeOtp } from '@/lib/otp-store'
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // In-memory rate limiters
 // ---------------------------------------------------------------------------

@@ -19,7 +19,7 @@ export default function AdminSetupPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.hasAdmin === true) {
-          router.replace('/admin/login')
+          router.replace('/admin')
         } else {
           setChecking(false)
         }

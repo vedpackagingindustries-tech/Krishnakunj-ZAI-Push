@@ -3,6 +3,8 @@ import { verifyPassword, createSession } from '@/lib/auth'
 import { db, isDbAvailable } from '@/lib/db'
 import { logAdminEvent } from '@/lib/audit'
 
+export const dynamic = 'force-dynamic'
+
 // In-memory rate limiting: IP -> { count, firstAttemptAt }
 const loginAttempts = new Map<string, { count: number; firstAttemptAt: number }>()
 

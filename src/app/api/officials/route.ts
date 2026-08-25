@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { db, isDbAvailable } from '@/lib/db';
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     if (!isDbAvailable()) return NextResponse.json({ officials: [] });

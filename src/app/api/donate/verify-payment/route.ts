@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { verifyPayment } from '@/lib/payment';
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // Zod validation schema
 // ---------------------------------------------------------------------------

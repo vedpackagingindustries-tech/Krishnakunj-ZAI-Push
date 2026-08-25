@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { createPaymentOrder, buildUpiLink } from '@/lib/payment';
 import { db, isDbAvailable } from '@/lib/db';
 
+export const dynamic = 'force-dynamic'
+
 // ---------------------------------------------------------------------------
 // In-memory rate limiter: IP → timestamp[]
 // ---------------------------------------------------------------------------

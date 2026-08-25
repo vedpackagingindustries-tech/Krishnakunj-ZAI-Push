@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 const PAYMENT_KEYS = [
   'upiId',
   'accountHolder',

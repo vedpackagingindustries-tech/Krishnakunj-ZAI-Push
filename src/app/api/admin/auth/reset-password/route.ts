@@ -4,6 +4,8 @@ import { hashPassword } from '@/lib/auth'
 import { logAdminEvent } from '@/lib/audit'
 import { verifyOtp, clearOtp } from '@/lib/otp-store'
 
+export const dynamic = 'force-dynamic'
+
 function getClientIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
   if (forwarded) {

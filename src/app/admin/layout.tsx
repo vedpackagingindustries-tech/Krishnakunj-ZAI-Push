@@ -44,7 +44,7 @@ export default function AdminLayout({
       const token = getAdminToken()
       if (!token) {
         clearAdminToken()
-        router.replace('/admin/login')
+        router.replace('/admin')
         return
       }
 
@@ -56,13 +56,13 @@ export default function AdminLayout({
           setAdmin(data.admin)
         } else {
           clearAdminToken()
-          router.replace('/admin/login')
+          router.replace('/admin')
         }
       } catch {
         // Session validation failed (expired or invalid)
-        // Clear token and redirect to login
+        // Clear token and redirect to admin entry (handles setup vs login)
         clearAdminToken()
-        router.replace('/admin/login')
+        router.replace('/admin')
       } finally {
         setLoading(false)
       }

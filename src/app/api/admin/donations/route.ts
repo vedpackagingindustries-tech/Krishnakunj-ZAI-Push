@@ -3,6 +3,8 @@ import { validateSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     // ── Admin auth validation ──

@@ -552,7 +552,7 @@ export default function ForgotPasswordPage() {
             <p style={{ color: '#806B59', fontSize: 14, marginBottom: 20 }}>
               अब आप अपने नए पासवर्ड से लॉगिन कर सकते हैं।
             </p>
-            <Link href="/admin/login" style={styles.submitBtn as React.CSSProperties}>
+            <Link href="/admin" style={styles.submitBtn as React.CSSProperties}>
               लॉगिन पर जाएं
             </Link>
           </div>
@@ -561,7 +561,7 @@ export default function ForgotPasswordPage() {
         {/* Back to login */}
         {step !== 'success' && (
           <div style={styles.backLink}>
-            <Link href="/admin/login" style={styles.link}>
+            <Link href="/admin" style={styles.link}>
               ← लॉगिन पर वापस जाएं
             </Link>
           </div>
