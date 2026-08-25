@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { hashPassword } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { hashPassword, generateSessionToken } from '@/lib/auth'
+import { db, isDbAvailable } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,53 +62,52 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ---- Atomic: transaction guarantees only ONE first admin ----
-    const passwordHash = await hashPassword(password)
-    const { generateSessionToken } = await import('@/lib/auth')
-    const token = generateSessionToken()
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    if (!isDbAvailable()) {
+      return NextResponse.json(
+        { error: 'डेटाबेस अभी उपलब्ध नहीं है। कृपया बाद में प्रयास करें।' },
+        { status: 503 }
+      )
+    }
 
-    const created = await db.$transaction(async (tx) => {
-      // 1. Count admins inside the transaction (serialized isolation)
-      const adminCount = await tx.admin.count()
-      if (adminCount > 0) {
-        return null
-      }
-
-      // 2. Create the SUPER_ADMIN
-      const admin = await tx.admin.create({
-        data: {
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          passwordHash,
-          whatsapp: cleanWhatsapp,
-          role: 'SUPER_ADMIN',
-        },
-      })
-
-      // 3. Create a session (still inside transaction)
-      await tx.adminSession.create({
-        data: { adminId: admin.id, token, expiresAt },
-      })
-
-      return admin
-    })
-
-    if (!created) {
+    // ---- Step 1: Check if any admin already exists ----
+    const adminCount = await db.admin.count()
+    if (adminCount > 0) {
       return NextResponse.json(
         { error: 'एडमिन खाता पहले से मौजूद है। कृपया लॉगिन करें।' },
         { status: 403 }
       )
     }
 
+    // ---- Step 2: Hash password ----
+    const passwordHash = await hashPassword(password)
+
+    // ---- Step 3: Create the SUPER_ADMIN ----
+    // Unique constraint on email prevents race conditions
+    const admin = await db.admin.create({
+      data: {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        passwordHash,
+        whatsapp: cleanWhatsapp,
+        role: 'SUPER_ADMIN',
+      },
+    })
+
+    // ---- Step 4: Create session ----
+    const token = generateSessionToken()
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    await db.adminSession.create({
+      data: { adminId: admin.id, token, expiresAt },
+    })
+
     return NextResponse.json({
       success: true,
       token,
       admin: {
-        id: created.id,
-        name: created.name,
-        email: created.email,
-        role: created.role,
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
       },
     })
   } catch (err: unknown) {
@@ -119,6 +118,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
+    console.error('[setup] Error:', err)
     return NextResponse.json(
       { error: 'खाता बनाने में त्रुटि हुई। कृपया पुनः प्रयास करें।' },
       { status: 500 }
