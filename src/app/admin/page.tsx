@@ -14,15 +14,20 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminEntryPage() {
   // Server-side admin existence check
+  // NOTE: redirect() must be OUTSIDE try/catch — it throws NEXT_REDIRECT
+  // which would be swallowed by catch, preventing the redirect.
+  let adminCount = -1
   if (isDbAvailable()) {
     try {
-      const adminCount = await db.admin.count()
-      if (adminCount === 0) {
-        redirect('/admin/setup')
-      }
+      adminCount = await db.admin.count()
     } catch {
       // DB error — fall through to login page so the user isn't stuck
     }
+  }
+
+  // Redirect to setup OUTSIDE the try/catch block
+  if (adminCount === 0) {
+    redirect('/admin/setup')
   }
 
   // At least one admin exists (or DB unavailable) → show login
